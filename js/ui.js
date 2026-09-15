@@ -176,35 +176,67 @@
   }
   UI.XYPad = XYPad;
 
-  /* ---------- 石窗: 克拉尼沙图 (共振粒子) / 波形 ---------- */
+  /* ---------- 石窗: 克拉尼沙图 (振型浮雕 + 金沙) / 谐波金字塔 / 波形 ----------
+     振型: w(x,y) = cos(nπx)cos(mπy) − cos(mπx)cos(nπy)  (方板, 自由边近似)
+     振型选择: Chladni 定律 f ∝ (m+2n)²  → 主峰频率决定 m+2n, 次峰决定 n
+     参考: Gander & Kwok, SIAM Review 54 (2012); paulbourke.net/geometry/chladni; en.wikipedia.org/wiki/Chladni's_law */
   class Scope {
     constructor(canvas, analyser) {
       this.cv = canvas; this.an = analyser; this.td = new Uint8Array(analyser.fftSize); this.fd = new Uint8Array(analyser.frequencyBinCount);
-      this.mode = 'sand'; this.N = 1500; this.px = new Float32Array(this.N); this.py = new Float32Array(this.N); this.pv = new Float32Array(this.N);
+      this.mode = 'sand'; this.N = 1600; this.px = new Float32Array(this.N); this.py = new Float32Array(this.N); this.pv = new Float32Array(this.N);
       for (let i = 0; i < this.N; i++) { this.px[i] = Math.random(); this.py[i] = Math.random(); }
-      this.m = 2; this.n = 3; this.tm = 2; this.tn = 3; this.amp = 0; this.frame = 0; this.rot = 0;
+      this.m = 2; this.n = 3; this.tm = 2; this.tn = 3; this.amp = 0; this.frame = 0; this.f1 = 0; this.harm = new Float32Array(12);
+      this.relief = null; this.reliefKey = ''; this.tile = null;
+      if (S.marble) { this.tileLight = new Image(); this.tileLight.src = S.marble.cream; this.tileDark = new Image(); this.tileDark.src = S.marble.obsidian; }
     }
     analyse() {
       this.an.getByteFrequencyData(this.fd); this.an.getByteTimeDomainData(this.td);
       const sr = this.an.context.sampleRate, bins = this.fd.length; const hz = (b) => (b * sr) / (2 * bins);
       let sum = 0; for (let i = 0; i < this.td.length; i++) { const v = (this.td[i] - 128) / 128; sum += v * v; } const rms = Math.sqrt(sum / this.td.length);
       this.amp += (rms - this.amp) * (rms > this.amp ? 0.5 : 0.04);
-      // 两个主峰 → 克拉尼模态 (m, n)
-      let b1 = 0, v1 = 0; const lo = Math.max(1, Math.floor(40 / (sr / 2 / bins)));
-      for (let b = lo; b < bins / 2; b++) if (this.fd[b] > v1) { v1 = this.fd[b]; b1 = b; }
+      const lo = Math.max(1, Math.floor(40 / (sr / 2 / bins)));
+      let b1 = 0, v1 = 0; for (let b = lo; b < bins / 2; b++) if (this.fd[b] > v1) { v1 = this.fd[b]; b1 = b; }
       let b2 = 0, v2 = 0; for (let b = lo; b < bins / 2; b++) { if (Math.abs(b - b1) < 6) continue; if (this.fd[b] > v2) { v2 = this.fd[b]; b2 = b; } }
       if (v1 > 40) {
-        const mm = Math.max(1, Math.min(9, 1 + Math.round(Math.log2(hz(b1) / 55)))); let nn = Math.max(1, Math.min(9, 1 + Math.round(Math.log2(Math.max(hz(b2), 56) / 55))));
-        if (nn === mm) nn = mm % 9 + 1; this.tm = mm; this.tn = nn;
+        const f1 = hz(b1), f2 = Math.max(hz(b2), 56); this.f1 = f1;
+        // Chladni 定律: f ∝ (m+2n)²  → s = m+2n 随 √f 增长 (55 Hz → 3, 5 kHz → 27)
+        const s = Math.round(3 + 24 * Math.sqrt(Math.min(1, Math.max(0, (f1 - 55) / 4945))));
+        const nPref = Math.max(1, Math.min(9, 1 + Math.round(Math.log2(f2 / 55))));
+        let best = null, bd = 1e9;
+        for (let n = 1; n <= 9; n++) { const m = s - 2 * n; if (m < 1 || m > 9 || m === n) continue; const d = Math.abs(n - nPref); if (d < bd) { bd = d; best = [m, n]; } }
+        if (!best) { const mm = Math.max(1, Math.min(9, Math.round(s / 3))); best = [mm, mm % 9 + 1]; }
+        this.tm = best[0]; this.tn = best[1];
+        // 谐波: 基频整数倍附近的能量
+        for (let k = 1; k <= 12; k++) { const bk = Math.round((f1 * k) / (sr / 2 / bins)); let mx = 0; for (let d = -2; d <= 2; d++) { const v = this.fd[bk + d] || 0; if (v > mx) mx = v; } this.harm[k - 1] += (mx / 255 - this.harm[k - 1]) * 0.3; }
       }
       if (this.frame % 30 === 0) { this.m = this.tm; this.n = this.tn; }
     }
+    /* 振型浮雕: 峰亮谷暗 + 斜向光照, 低分辨率渲染后放大, 只在 (m,n,主题,尺寸) 变化时重算 */
+    buildRelief(W, H, venom) {
+      const key = this.m + ',' + this.n + ',' + venom + ',' + W + 'x' + H; if (key === this.reliefKey && this.relief) return this.relief;
+      const sw = Math.max(64, Math.round(W / 4)), sh = Math.max(40, Math.round(H / 4)); const off = document.createElement('canvas'); off.width = sw; off.height = sh; const c = off.getContext('2d');
+      const img = c.createImageData(sw, sh); const d = img.data; const PI = Math.PI, m = this.m, n = this.n;
+      const base = venom ? [24, 22, 32] : [236, 231, 220], peak = venom ? [70, 92, 66] : [252, 249, 241], valley = venom ? [8, 8, 12] : [186, 176, 158];
+      for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+        const u = x / sw, v = y / sh;
+        const f = Math.cos(n * PI * u) * Math.cos(m * PI * v) - Math.cos(m * PI * u) * Math.cos(n * PI * v);
+        const fx = -n * PI * Math.sin(n * PI * u) * Math.cos(m * PI * v) + m * PI * Math.sin(m * PI * u) * Math.cos(n * PI * v);
+        const fy = -m * PI * Math.cos(n * PI * u) * Math.sin(m * PI * v) + n * PI * Math.cos(m * PI * u) * Math.sin(n * PI * v);
+        const h = Math.abs(f) / 2; const light = Math.max(-1, Math.min(1, (fx - fy) * Math.sign(f) / (PI * (m + n)))); // 斜向光
+        const t = Math.min(1, h * 1.15); const i = (y * sw + x) * 4;
+        for (let k = 0; k < 3; k++) { let col = base[k] + (peak[k] - base[k]) * t + (valley[k] - base[k]) * (1 - t) * 0.55; col += light * 14; d[i + k] = col < 0 ? 0 : col > 255 ? 255 : col; }
+        d[i + 3] = 255;
+      }
+      c.putImageData(img, 0, 0); this.relief = off; this.reliefKey = key; return off;
+    }
     drawSand(ctx, W, H, venom) {
       const a = this.amp; const m = this.m, n = this.n; const PI = Math.PI;
-      // 石板 + 拖尾
-      ctx.fillStyle = venom ? 'rgba(8,7,12,0.32)' : 'rgba(30,26,20,0.3)'; ctx.fillRect(0, 0, W, H);
-      const k = 0.00045 * (0.5 + a * 3), jit = 0.0009 + a * 0.008;
-      const px = this.px, py = this.py, pv = this.pv;
+      // 石板: 大理石贴图 × 振型浮雕
+      const tile = venom ? this.tileDark : this.tileLight;
+      if (tile && tile.complete && tile.naturalWidth) { const pat = ctx.createPattern(tile, 'repeat'); ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H); } else { ctx.fillStyle = venom ? '#14121b' : '#ece7db'; ctx.fillRect(0, 0, W, H); }
+      ctx.save(); ctx.globalAlpha = venom ? 0.82 : 0.78; ctx.imageSmoothingEnabled = true; ctx.drawImage(this.buildRelief(W, H, venom), 0, 0, W, H); ctx.restore();
+      // 粒子
+      const k = 0.0016 * (0.6 + a * 2.5), jit = 0.00035 + a * 0.003; const px = this.px, py = this.py, pv = this.pv;
       for (let i = 0; i < this.N; i++) {
         let x = px[i], y = py[i];
         const cnx = Math.cos(n * PI * x), cmy = Math.cos(m * PI * y), cmx = Math.cos(m * PI * x), cny = Math.cos(n * PI * y);
@@ -212,21 +244,43 @@
         const fx = -n * PI * Math.sin(n * PI * x) * cmy + m * PI * Math.sin(m * PI * x) * cny;
         const fy = -m * PI * cnx * Math.sin(m * PI * y) + n * PI * cmx * Math.sin(n * PI * y);
         let dx = -f * fx * k + (Math.random() - 0.5) * jit, dy = -f * fy * k + (Math.random() - 0.5) * jit;
-        const sp = Math.sqrt(dx * dx + dy * dy); if (sp > 0.02) { dx *= 0.02 / sp; dy *= 0.02 / sp; }
+        const sp = Math.sqrt(dx * dx + dy * dy); if (sp > 0.015) { dx *= 0.015 / sp; dy *= 0.015 / sp; }
         x += dx; y += dy; if (x < 0) x = -x; if (x > 1) x = 2 - x; if (y < 0) y = -y; if (y > 1) y = 2 - y;
         px[i] = x; py[i] = y; pv[i] = sp;
       }
-      // 粒子: 金沙 (快=亮, 慢=沉)
-      const gold = venom ? [140, 255, 90] : [232, 193, 90], hot = venom ? [220, 160, 255] : [255, 246, 200];
-      const r = Math.max(1.2, Math.min(2.6, W / 420));
+      const dpr = W / Math.max(1, this.cv.clientWidth); const r = Math.max(1.4, Math.min(2.8, 1.5 * dpr)); const sh = 0.9 * dpr;
+      // 阴影层: 让金沙在白大理石上也立得起来
+      ctx.fillStyle = venom ? 'rgba(0,0,0,0.65)' : 'rgba(60,40,10,0.42)';
+      for (let i = 0; i < this.N; i++) ctx.fillRect(px[i] * W + sh, py[i] * H + sh, r, r);
+      const gold = venom ? [140, 255, 90] : [196, 140, 32], hot = venom ? [220, 160, 255] : [255, 226, 130];
       for (let i = 0; i < this.N; i++) {
-        const t = Math.min(1, pv[i] * 80); const c = [gold[0] + (hot[0] - gold[0]) * t, gold[1] + (hot[1] - gold[1]) * t, gold[2] + (hot[2] - gold[2]) * t];
-        ctx.fillStyle = 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + (0.55 + 0.45 * t) + ')';
-        ctx.fillRect(px[i] * W, py[i] * H, r, r);
+        const t = Math.min(1, pv[i] * 80); const c0 = (gold[0] + (hot[0] - gold[0]) * t) | 0, c1 = (gold[1] + (hot[1] - gold[1]) * t) | 0, c2 = (gold[2] + (hot[2] - gold[2]) * t) | 0;
+        ctx.fillStyle = 'rgb(' + c0 + ',' + c1 + ',' + c2 + ')'; ctx.fillRect(px[i] * W, py[i] * H, r, r);
       }
-      // 振动时石板泛光
-      if (a > 0.01) { const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.6); g.addColorStop(0, 'rgba(' + gold.join(',') + ',' + Math.min(0.18, a * 0.5) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
-      ctx.fillStyle = venom ? 'rgba(140,255,90,0.55)' : 'rgba(232,193,90,0.55)'; ctx.font = (10 * (devicePixelRatio > 1 ? 2 : 1)) + 'px Menlo, monospace'; ctx.fillText('m' + this.m + ' n' + this.n + '  ' + (a * 100).toFixed(0), 8, H - 8);
+      // 振动时板面泛光
+      if (a > 0.01) { const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.6); g.addColorStop(0, 'rgba(' + gold.join(',') + ',' + Math.min(0.14, a * 0.4) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+      ctx.fillStyle = venom ? 'rgba(140,255,90,0.75)' : 'rgba(90,64,10,0.75)'; ctx.font = (10 * dpr) + 'px Menlo, monospace'; ctx.fillText('m' + this.m + ' n' + this.n + (this.f1 ? '  ' + Math.round(this.f1) + ' Hz' : '') + '  ' + (a * 100).toFixed(0), 8 * dpr, H - 8 * dpr);
+    }
+    /* 谐波金字塔: 基频的 1..12 次分音, 由下往上逐层叠加 (傅里叶级数) */
+    drawHarm(ctx, W, H, venom) {
+      ctx.fillStyle = venom ? '#0e0d14' : '#1e1a14'; ctx.fillRect(0, 0, W, H);
+      const rows = 12, rowH = H / (rows + 1); const dpr = W / Math.max(1, this.cv.clientWidth);
+      const gold = venom ? [140, 255, 90] : [232, 193, 90], hot = venom ? [200, 120, 255] : [255, 246, 200];
+      const t = this.frame * 0.05;
+      for (let row = 0; row < rows; row++) {
+        const y0 = H - (row + 1) * rowH; const partials = row + 1; const width = W * (0.35 + 0.65 * (1 - row / rows));
+        const x0 = (W - width) / 2; let energy = 0;
+        ctx.beginPath();
+        for (let px = 0; px <= width; px += 2) {
+          const ph = (px / width) * 2 * Math.PI * 2 + t; let v = 0;
+          for (let k = 1; k <= partials; k++) { const ak = this.harm[k - 1]; energy += ak; v += (ak / k) * Math.sin(k * ph); }
+          const y = y0 - v * rowH * 0.9; if (px === 0) ctx.moveTo(x0 + px, y); else ctx.lineTo(x0 + px, y);
+        }
+        const e = Math.min(1, energy / (width / 2) / 1.5); const c = [gold[0] + (hot[0] - gold[0]) * e, gold[1] + (hot[1] - gold[1]) * e, gold[2] + (hot[2] - gold[2]) * e];
+        ctx.strokeStyle = 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + (0.35 + 0.6 * e) + ')'; ctx.lineWidth = (0.8 + 1.2 * e) * dpr; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6 * e * dpr; ctx.stroke(); ctx.shadowBlur = 0;
+      }
+      ctx.fillStyle = venom ? 'rgba(140,255,90,0.7)' : 'rgba(232,193,90,0.7)'; ctx.font = (10 * dpr) + 'px Menlo, monospace';
+      ctx.fillText('f₀ ' + (this.f1 ? Math.round(this.f1) + ' Hz' : '—') + '  分音 partials 1–12', 8 * dpr, H - 8 * dpr);
     }
     drawWave(ctx, W, H, venom) {
       ctx.clearRect(0, 0, W, H);
@@ -240,9 +294,9 @@
     }
     draw(venom) {
       const cv = this.cv, ctx = cv.getContext('2d'); const dpr = devicePixelRatio > 1 ? 2 : 1; const W = cv.clientWidth * dpr, H = cv.clientHeight * dpr;
-      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; if (this.mode === 'sand') { ctx.fillStyle = '#1e1a14'; ctx.fillRect(0, 0, W, H); } }
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       this.frame++; this.analyse();
-      if (this.mode === 'sand') this.drawSand(ctx, W, H, venom); else this.drawWave(ctx, W, H, venom);
+      if (this.mode === 'sand') this.drawSand(ctx, W, H, venom); else if (this.mode === 'harm') this.drawHarm(ctx, W, H, venom); else this.drawWave(ctx, W, H, venom);
     }
   }
   UI.Scope = Scope;
