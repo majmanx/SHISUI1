@@ -11,6 +11,14 @@
     slots: [], recTarget: 0, slotFx: false,
     lfo: [{ ph: 0, sh: Math.random() }, { ph: 0, sh: Math.random() }], effCache: {}, escAt: 0,
   };
+  /* ---- 诊断记录: 最近错误 + 最近操作 (供"报错"上报) ---- */
+  const diag = { errors: [], actions: [], t0: Date.now() };
+  const stamp = () => ((Date.now() - diag.t0) / 1000).toFixed(1) + 's';
+  function logAction(msg) { diag.actions.push(stamp() + ' ' + msg); if (diag.actions.length > 80) diag.actions.shift(); }
+  function logError(kind, msg, extra) { diag.errors.push({ t: stamp(), kind, msg: String(msg).slice(0, 400), extra: extra ? String(extra).slice(0, 600) : '' }); if (diag.errors.length > 25) diag.errors.shift(); }
+  root.addEventListener('error', (e) => logError('error', e.message, e.filename + ':' + e.lineno + ' ' + (e.error && e.error.stack ? e.error.stack.split('\n').slice(0, 4).join(' | ') : '')));
+  root.addEventListener('unhandledrejection', (e) => logError('promise', e.reason && e.reason.message ? e.reason.message : e.reason, e.reason && e.reason.stack ? e.reason.stack.split('\n').slice(0, 4).join(' | ') : ''));
+  { const ce = console.error.bind(console); console.error = (...a) => { logError('console', a.map((x) => (x && x.message) || String(x)).join(' ')); ce(...a); }; const cw = console.warn.bind(console); console.warn = (...a) => { logError('warn', a.map((x) => (x && x.message) || String(x)).join(' ')); cw(...a); }; }
   const engine = new S.Engine(); const bus = new S.RandomBus();
   let sched = null, controls = {}, modIndex = {}, keyboard, xyPad, scope, palette, codeConsole;
   let instBody, modListEl, orbEls = [], rndViewEl, geigerLed, geigerCv, c14StatsEl, srcChipEls = {}, patchTA, arpChip;
@@ -52,6 +60,7 @@
     const c = controls[id]; if (c && !opts.fromControl) { if (c instanceof UI.Knob) c.set(S.norm(p, v), true); else c.set(v); }
     if (id === 'inst' && !opts.noRebuild) buildInstPanel();
     if (id === 'vn.on') setVenomUI(!!v);
+    if (opts.commit || opts.fromControl) { clearTimeout(diag._pt); diag._pt = setTimeout(() => logAction('set ' + id + ' = ' + (typeof v === 'number' ? +v.toFixed(3) : v)), 250); }
     if (opts.commit) pushUndo();
   }
   function rebuildModIndex() {
@@ -142,6 +151,9 @@
       o.title = '接口 R' + (i + 1) + '：点我，再点任意旋钮 → 接线调制 · Port R' + (i + 1) + ': click, then any knob to route'; o.addEventListener('click', () => arm('R' + (i + 1))); orbs.appendChild(o); orbEls.push(o);
     }
     pr.body.appendChild(orbs);
+    const pauseBtn = UI.btn(UI.bi('⏸ 暂停衰变', 'Pause decay'), 'warn', () => setDecayPaused(!bus.paused), '停住碳-14 时钟：不再有衰变事件、不再自动刷新接口 · Freeze the C-14 clock: no decay events, no auto refresh');
+    const stopBtn = UI.btn(UI.bi('■ 停止随机', 'Stop random'), 'warn', stopRandom, '暂停衰变 + 关掉自动刷新、衰变触发音符、碳衰变琶音 · Pause + turn off auto refresh, decay→note and C-14 arp');
+    const ctlRow = UI.el('div', 'rand-stop'); ctlRow.appendChild(pauseBtn); ctlRow.appendChild(stopBtn); pr.body.appendChild(ctlRow); randPauseBtn = pauseBtn;
     pr.body.appendChild(UI.row([
       UI.btn(UI.bi('⟲ 复位', 'Reset'), '', resetRandom, '接口 R1–R4 归零到 0.5，重置碳-14 样本与 π 位置 · Reset ports to 0.5, reset the C-14 sample and π position'),
       UI.btn(UI.bi('⛓ 断开', 'Unroute'), '', unrouteRandom, '拆掉所有随机接口 / 衰变脉冲的接线 · Remove every routing from R1–R4 and Decay'),
@@ -224,6 +236,7 @@
   let recBtn, recTimeEl;
   const nextFreeSlot = () => { const f = state.slots.findIndex((s) => !s.buffer); return f >= 0 ? f : state.recTarget; };
   async function toggleRecord() {
+    logAction(engine.recording ? 'record stop' : 'record start');
     if (!engine.recording) { engine.startRecording(); recBtn.classList.add('on'); recBtn.querySelector('span:last-child').innerHTML = '■ 停止 <span class="en">Stop</span>'; state.recTarget = state.slots[state.recTarget] && !state.slots[state.recTarget].buffer ? state.recTarget : nextFreeSlot(); renderSlots(); toast('录音中 Recording → 槽 Slot ' + (state.recTarget + 1)); return; }
     const buf = await engine.stopRecording(); recBtn.classList.remove('on'); recBtn.querySelector('span:last-child').innerHTML = '● 录音 <span class="en">Record</span>'; recTimeEl.textContent = '00:00.0';
     if (!buf) { toast('录音太短'); return; }
@@ -265,6 +278,12 @@
   }
   function arm(src) { state.armed = src; document.body.classList.add('arming'); $('#arm-banner').textContent = '已选中源 ' + src + '：点任意旋钮完成接线（Esc 取消） · Source armed: click any knob to route (Esc cancels)'; document.querySelectorAll('.chip[data-src], .orb').forEach((e) => e.classList.toggle('armed', e.dataset.src === src || e.querySelector('.orb-name') && e.querySelector('.orb-name').textContent === src)); }
   function disarm() { state.armed = null; document.body.classList.remove('arming'); document.querySelectorAll('.armed').forEach((e) => e.classList.remove('armed')); }
+  let randPauseBtn;
+  function setDecayPaused(on) { bus.paused = on; if (!on) bus.decayDrive = true; if (randPauseBtn) { randPauseBtn.classList.toggle('on', on); randPauseBtn.innerHTML = on ? UI.bi('▶ 继续衰变', 'Resume decay') : UI.bi('⏸ 暂停衰变', 'Pause decay'); } logAction('decay ' + (on ? 'paused' : 'resumed')); toast(on ? '碳-14 时钟已暂停 · Decay paused' : '碳-14 时钟继续 · Decay resumed'); }
+  function stopRandom() {
+    setDecayPaused(true); setParam('rnd.rate', 0); setParam('c14.prob', 0); if (real('arp.mode') === 'c14') setParam('arp.mode', 'off'); bus.decayDrive = false; state.decayEnv = 0; pushUndo();
+    toast('随机已全部停止：自动刷新 / 衰变触发 / 碳衰变琶音都已关闭 · All randomness stopped');
+  }
   function resetRandom() {
     for (let i = 0; i < 4; i++) { bus.raw[i] = 0.5; bus.val[i] = 0.5; } bus.lastSrcUsed = []; bus.c14.reset(real('c14.atoms')); bus.pi.seek(0); state.decayEnv = 0; state.effCache = {};
     pulseOrbs(); toast('随机接口已复位 · Ports reset');
@@ -333,7 +352,7 @@
 
   /* ================= 演奏 ================= */
   function playNote(n, vel, dur) { engine.noteOn(n, vel); keyboard.light(n, true); setTimeout(() => { engine.noteOff(n); keyboard.light(n, false); }, dur * 1000); }
-  function noteOn(n, vel) { state.key = n / 127; state.vel = vel; if (real('arp.mode') !== 'off') { sched.hold(n); return; } engine.noteOn(n, vel); }
+  function noteOn(n, vel) { state.key = n / 127; state.vel = vel; diag.notes = (diag.notes || 0) + 1; if (diag.notes % 16 === 1) logAction('noteOn ' + UI.noteName(n) + ' (' + diag.notes + ' 音)'); if (real('arp.mode') !== 'off') { sched.hold(n); return; } engine.noteOn(n, vel); }
   function noteOff(n) { if (real('arp.mode') !== 'off') { sched.unhold(n); return; } if (state.sustain) { state.sustained.add(n); return; } engine.noteOff(n); }
   function setSustain(on) { state.sustain = on; if (!on) { for (const n of state.sustained) engine.noteOff(n); state.sustained.clear(); } }
   function setOctave(o) {
@@ -390,7 +409,7 @@
     const all = allPresets(); const pr = all[((i % all.length) + all.length) % all.length]; state.presetIdx = all.indexOf(pr);
     const patch = S.defaults(); Object.assign(patch, pr.patch);
     const mods = (pr.user ? (pr.mods || []) : S.DEFAULT_MODS.concat(pr.mods || [])).map((m) => (Array.isArray(m) ? { src: m[0], dst: m[1], amt: m[2] } : m));
-    applySnapshot({ patch, mods }); $('#preset-title').textContent = pr.name; renderPresetList(); pushUndo(); if (!silent) toast('预设：' + pr.name);
+    applySnapshot({ patch, mods }); $('#preset-title').textContent = pr.name; renderPresetList(); pushUndo(); logAction('preset ' + pr.name); if (!silent) toast('预设：' + pr.name);
   }
   function saveUserPreset() {
     const name = prompt('给这个音色起个名字：', state.presetIdx >= 0 ? allPresets()[state.presetIdx].name + ' · 改' : '我的音色'); if (!name) return;
@@ -413,7 +432,7 @@
 
   /* ================= 惊喜随机化 ================= */
   function surprise() {
-    pushUndo();
+    logAction('surprise'); pushUndo();
     const wild = real('rnd.wild'); const src = real('rnd.source'); const used = new Set(); let count = 0;
     for (const p of S.PARAMS) {
       if (p.noRnd || state.locks.has(p.id) || p.target === 'host' && !/^(lfo|rnd\.wild)/.test(p.id)) continue;
@@ -459,15 +478,52 @@
     if (on && !was && !store.get('shisui.venomSeen', false)) { store.set('shisui.venomSeen', true); openVenomIntro(); }
   }
   function openVenomIntro() { $('#venom-intro').classList.add('open'); }
+  function setPlain(on) { document.body.classList.toggle('plain', on); $('#btn-plain').classList.toggle('on', on); store.set('shisui.plain', on); logAction('plain ' + on); }
+  function buildReport() {
+    const d = S.defaults(); const diff = {}; for (const k in state.patch) if (state.patch[k] !== d[k]) diff[k] = state.patch[k];
+    const ctx = engine.ctx || {};
+    return {
+      app: '石髓 SHISUI', version: root.SHISUI.VERSION || 'dev', url: location.href, time: new Date().toISOString(),
+      description: $('#rep-desc').value.trim(), expectation: $('#rep-expect').value.trim(), steps: $('#rep-steps').value.trim(),
+      state: { preset: $('#preset-title').textContent, inst: state.patch.inst, mode: state.mode, venom: !!state.patch['vn.on'], lang: UI.lang, plain: document.body.classList.contains('plain'), recording: !!engine.recording, slots: state.slots.filter((x) => x.buffer).length, mods: state.mods.map((m) => m.src + '→' + m.dst + '×' + m.amt.toFixed(2)), arp: state.patch['arp.mode'], rndSource: state.patch['rnd.source'], decayPaused: bus.paused, c14: { N: Math.round(bus.c14.N), N0: bus.c14.N0, rate: +bus.c14.ratePerSec.toFixed(2) } },
+      env: { ua: navigator.userAgent, sampleRate: ctx.sampleRate, ctxState: ctx.state, latencyMs: ctx.baseLatency != null ? Math.round((ctx.baseLatency + (ctx.outputLatency || 0)) * 1000) : null, screen: innerWidth + 'x' + innerHeight, dpr: devicePixelRatio, midi: engine.midiName || '', marbleMs: S.marble && S.marble.ms },
+      errors: diag.errors.slice(-12), actions: diag.actions.slice(-40), patch: diff,
+    };
+  }
+  function reportMarkdown(r) {
+    const errs = r.errors.length ? r.errors.map((e) => '- `' + e.t + '` **' + e.kind + '** ' + e.msg + (e.extra ? '\n  ' + e.extra : '')).join('\n') : '（无错误记录 · no errors captured）';
+    return [
+      '## 问题描述 · Description', r.description || '_（用户未填写 · 待 AI 分析：请根据下面的错误与操作记录推断问题）_', '',
+      '## 当时想做什么 · Expectation', r.expectation || '_未填写_', '',
+      '## 复现步骤 · Steps', r.steps || '_未填写_', '',
+      '## 最近错误 · Recent errors', errs, '',
+      '## 软件当时在做什么 · Recent actions', '```', r.actions.join('\n') || '(none)', '```', '',
+      '## 状态 · State', '```json', JSON.stringify(r.state, null, 1), '```', '',
+      '## 环境 · Environment', '```json', JSON.stringify(r.env, null, 1), '```', '',
+      '## 音色差量 · Patch diff', '```json', JSON.stringify(r.patch), '```', '',
+      '_由页内"报错"按钮生成 · ' + r.time + ' · ' + r.url + '_',
+    ].join('\n');
+  }
+  function openReport() { $('#report').classList.add('open'); $('#rep-preview').textContent = reportMarkdown(buildReport()); setTimeout(() => $('#rep-desc').focus(), 50); }
+  function submitReport() {
+    const r = buildReport(); const md = reportMarkdown(r);
+    const title = (r.description ? r.description.split('\n')[0].slice(0, 70) : '[自动 · 待 AI 分析] ' + (r.errors.length ? r.errors[r.errors.length - 1].msg.slice(0, 60) : '用户反馈 ' + new Date().toLocaleString()));
+    let body = md; const max = 6500; if (body.length > max) body = body.slice(0, max) + '\n\n_（报告已截断，完整 JSON 请用"下载 JSON"附上）_';
+    const url = 'https://github.com/majmanx/SHISUI1/issues/new?labels=bug-report&title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
+    try { if (navigator.clipboard) navigator.clipboard.writeText(md).catch(() => {}); } catch (e) { /* 忽略 */ }
+    logAction('report submitted'); const w = root.open(url, '_blank'); if (!w) toast('浏览器拦截了新窗口，报告已复制到剪贴板 · Popup blocked; report copied');
+  }
+  function copyReport() { const md = reportMarkdown(buildReport()); const ta = document.createElement('textarea'); ta.value = md; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('报告已复制 · Copied'); } catch (e) { toast('复制失败'); } ta.remove(); }
+  function downloadReport() { const r = buildReport(); const blob = new Blob([JSON.stringify(r, null, 1)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'shisui-report-' + Date.now() + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); }
   function setLang(mode) { UI.applyLang(mode); document.querySelectorAll('#lang-toggle button').forEach((b) => b.classList.toggle('on', b.dataset.lang === mode)); store.set('shisui.lang', mode); }
-  function setMode(m) { state.mode = m; document.body.classList.remove('mode-play', 'mode-shape', 'mode-deep'); document.body.classList.add('mode-' + m); document.querySelectorAll('.mode-tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === m)); }
+  function setMode(m) { logAction('mode ' + m); state.mode = m; document.body.classList.remove('mode-play', 'mode-shape', 'mode-deep'); document.body.classList.add('mode-' + m); document.querySelectorAll('.mode-tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === m)); }
   let vuPeak = 0; function drawVU() { const cv = $('#vu'); const ctx = cv.getContext('2d'); const W = cv.width = 90, H = cv.height = 26; const td = new Float32Array(engine.analyser.fftSize); engine.analyser.getFloatTimeDomainData(td); let s = 0; for (let i = 0; i < td.length; i++) s += td[i] * td[i]; const rms = Math.sqrt(s / td.length); const db = 20 * Math.log10(rms + 1e-6); const x = Math.max(0, Math.min(1, (db + 48) / 48)); vuPeak = Math.max(x, vuPeak * 0.96); ctx.clearRect(0, 0, W, H); const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7fbf5a'); g.addColorStop(0.7, '#e8c15a'); g.addColorStop(1, '#ff5a3c'); ctx.fillStyle = g; ctx.fillRect(2, 6, (W - 4) * x, H - 12); ctx.fillStyle = '#fff'; ctx.fillRect(2 + (W - 4) * vuPeak - 1, 4, 2, H - 8); }
   function buildPalette() {
     const entries = [];
     for (const p of S.PARAMS) entries.push({ kind: '参数', label: p.label, en: p.en + ' ' + p.id, abbr: S.GROUPS[p.group] || '', act: () => { const c = controls[p.id]; if (!c) return; if (!c.el.offsetParent) setMode('deep'); setTimeout(() => c.flash(), 50); info(p); } });
     allPresets().forEach((pr, i) => entries.push({ kind: pr.user ? '我的预设' : '预设', label: pr.name, en: pr.tags.join(' '), act: () => loadPreset(i) }));
     for (const [id, , name, en] of INST_TILES) entries.push({ kind: '乐器', label: name, en, act: () => setParam('inst', id, { commit: true }) });
-    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['毒液模式玩法引导', 'venom guide', openVenomIntro], ['复位随机接口', 'reset random ports', resetRandom], ['断开随机接线', 'unroute random', unrouteRandom], ['语言：双语', 'language both', () => setLang('both')], ['语言：中文', 'language chinese', () => setLang('zh')], ['Language: English', 'language english', () => setLang('en')], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
+    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['毒液模式玩法引导', 'venom guide', openVenomIntro], ['报错 / 反馈', 'report bug feedback', openReport], ['素面切换', 'plain toggle', () => setPlain(!document.body.classList.contains('plain'))], ['暂停 / 继续 碳-14 衰变', 'pause decay', () => setDecayPaused(!bus.paused)], ['停止全部随机', 'stop random', stopRandom], ['复位随机接口', 'reset random ports', resetRandom], ['断开随机接线', 'unroute random', unrouteRandom], ['语言：双语', 'language both', () => setLang('both')], ['语言：中文', 'language chinese', () => setLang('zh')], ['Language: English', 'language english', () => setLang('en')], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
     for (const [l, e, f] of acts) entries.push({ kind: '动作', label: l, en: e, act: f });
     if (!palette) palette = new UI.Palette($('#palette'), { onPick: (e) => e.act() }); palette.setEntries(entries);
   }
@@ -486,6 +542,11 @@
     $('#venom-take-me').addEventListener('click', () => { $('#venom-intro').classList.remove('open'); const i = allPresets().findIndex((p) => p.name.startsWith('毒液胡')); if (i >= 0) loadPreset(i); setMode('shape'); setTimeout(() => { const c = controls['vn.amt']; if (c) c.flash(); toast('按住一个低音键 3 秒，再慢慢转"毒液量" · Hold a low note, then turn Venom amount'); }, 400); });
     $('#venom-preset-bass').addEventListener('click', () => { $('#venom-intro').classList.remove('open'); const i = allPresets().findIndex((p) => p.name.startsWith('毒液低音')); if (i >= 0) loadPreset(i); setMode('shape'); });
     document.querySelectorAll('#lang-toggle button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
+    $('#btn-plain').addEventListener('click', () => setPlain(!document.body.classList.contains('plain'))); setPlain(!!store.get('shisui.plain', false));
+    $('#btn-report').addEventListener('click', openReport); $('#report-close').addEventListener('click', () => $('#report').classList.remove('open'));
+    $('#report').addEventListener('click', (e) => { if (e.target.id === 'report') $('#report').classList.remove('open'); });
+    $('#rep-submit').addEventListener('click', submitReport); $('#rep-copy').addEventListener('click', copyReport); $('#rep-download').addEventListener('click', downloadReport);
+    ['rep-desc', 'rep-expect', 'rep-steps'].forEach((id) => { const el = $('#' + id); el.addEventListener('input', () => { $('#rep-preview').textContent = reportMarkdown(buildReport()); }); el.addEventListener('keydown', (e) => e.stopPropagation()); el.addEventListener('keyup', (e) => e.stopPropagation()); });
     setLang(store.get('shisui.lang', 'both'));
     $('#help').addEventListener('click', (e) => { if (e.target.id === 'help') $('#help').classList.remove('open'); });
     $('#btn-panic').addEventListener('click', () => { engine.panic(); if (sched) { sched.clearAll(); sched.held = []; } toast('全部静音'); });
@@ -499,7 +560,7 @@
       if (typing) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-      if (e.key === 'Escape') { if (state.armed) { disarm(); return; } if (palette.c.classList.contains('open')) { palette.close(); return; } if ($('#help').classList.contains('open')) { $('#help').classList.remove('open'); return; } if ($('#venom-intro').classList.contains('open')) { $('#venom-intro').classList.remove('open'); return; } const now = Date.now(); if (now - state.escAt < 500) { engine.panic(); toast('全部静音'); } state.escAt = now; return; }
+      if (e.key === 'Escape') { if (state.armed) { disarm(); return; } if (palette.c.classList.contains('open')) { palette.close(); return; } if ($('#help').classList.contains('open')) { $('#help').classList.remove('open'); return; } if ($('#venom-intro').classList.contains('open')) { $('#venom-intro').classList.remove('open'); return; } if ($('#report').classList.contains('open')) { $('#report').classList.remove('open'); return; } const now = Date.now(); if (now - state.escAt < 500) { engine.panic(); toast('全部静音'); } state.escAt = now; return; }
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); bus.refresh(); pulseOrbs(); return; }
@@ -536,5 +597,6 @@
     setInterval(() => { if (sched && arpChip) arpChip.textContent = real('arp.mode') === 'off' ? '' : '琶音中 Arp · 按住琴键 hold keys · ' + sched.held.length; }, 500);
   }
   $('#enter').addEventListener('click', boot);
-  root.SHISUI.app = { state, engine, bus, setParam, loadPreset, surprise, get sched() { return sched; } };
+  root.SHISUI.VERSION = '0.4.0';
+  root.SHISUI.app = { state, engine, bus, setParam, loadPreset, surprise, diag, buildReport, setDecayPaused, stopRandom, setPlain, get sched() { return sched; } };
 })(window);

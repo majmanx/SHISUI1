@@ -96,7 +96,7 @@
       this.pi = new PiSpigot(); this.c14 = new C14(); this.crypto = Crypto;
       this.source = 'c14'; this.raw = [0.5, 0.5, 0.5, 0.5]; this.val = [0.5, 0.5, 0.5, 0.5];
       this.slew = 0.3; this.rate = 0; this._acc = 0; this.onRefresh = null; this.lastSrcUsed = [];
-      this.decayDrive = true; this._rot = 0; this._lastDecayRefresh = 0; this.onDecay = null;
+      this.decayDrive = true; this._rot = 0; this._lastDecayRefresh = 0; this.onDecay = null; this.paused = false;
       this.pi.ensure(200);
       // 碳-14 源: 每次衰变事件轮流刷新一个接口 ("衰变即刷新")
       this.c14.onDecay = (k, v) => {
@@ -120,6 +120,7 @@
     refresh() { this.lastSrcUsed = []; for (let i = 0; i < 4; i++) { const [v, s] = this.draw(); this.raw[i] = v; this.lastSrcUsed.push(s); } if (this.onRefresh) this.onRefresh(this.raw.slice()); }
     /* 每帧推进 */
     tick(dt) {
+      if (this.paused) { return; }
       this.c14.step(dt, () => Crypto.next());
       if (this.rate > 0.05) { this._acc += dt * this.rate; if (this._acc >= 1) { this._acc = 0; this.refresh(); } }
       const k = this.slew <= 0.001 ? 1 : 1 - Math.exp(-dt / (this.slew * 1.5 + 0.01));

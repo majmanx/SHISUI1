@@ -48,6 +48,23 @@
     }
     ctx.putImageData(img, 0, 0); return cv.toDataURL('image/png');
   }
+  /* 锻造碳纤维: 随机叠放的碳片, 各向异性高光 */
+  function genForgedCarbon(size, seed) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = size; const ctx = cv.getContext('2d');
+    let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    ctx.fillStyle = '#08080b'; ctx.fillRect(0, 0, size, size);
+    for (let i = 0; i < 300; i++) {
+      const x = rnd() * size, y = rnd() * size, w = 9 + rnd() * 22, h = 4 + rnd() * 10, a = rnd() * Math.PI; const g = 16 + rnd() * 70;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      const grad = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+      grad.addColorStop(0, 'rgb(' + (g * 0.45 | 0) + ',' + (g * 0.45 | 0) + ',' + (g * 0.55 | 0) + ')'); grad.addColorStop(0.4, 'rgb(' + (g | 0) + ',' + (g | 0) + ',' + (g * 1.1 | 0) + ')'); grad.addColorStop(0.55, 'rgb(' + (g * 1.35 | 0) + ',' + (g * 1.35 | 0) + ',' + (g * 1.45 | 0) + ')'); grad.addColorStop(1, 'rgb(' + (g * 0.4 | 0) + ',' + (g * 0.4 | 0) + ',' + (g * 0.5 | 0) + ')');
+      ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2 - h * 0.35, -h / 2); ctx.lineTo(w / 2, h / 2); ctx.lineTo(-w / 2 + h * 0.35, h / 2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.75)'; ctx.lineWidth = 0.9; ctx.stroke(); ctx.restore();
+    }
+    // 树脂层: 柔和的斜向光泽
+    const sheen = ctx.createLinearGradient(0, 0, size, size); sheen.addColorStop(0, 'rgba(255,255,255,0.07)'); sheen.addColorStop(0.35, 'rgba(255,255,255,0)'); sheen.addColorStop(0.65, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(255,255,255,0.06)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, size, size);
+    return cv.toDataURL('image/png');
+  }
   function build() {
     if (S.marble) return S.marble;
     const t0 = performance.now();
@@ -59,7 +76,9 @@
     const black = genMarble({ seed: 37, size: 256, base: [26, 24, 32], vein: [66, 62, 78], metal: [196, 196, 206], freq: 5.5, veinW: 0.016, metalW: 0.0045, shade: 0.12 });
     // 黑曜石: 毒液面板底纹, 暗绿脉 + 酸绿痕
     const obsidian = genMarble({ seed: 41, size: 256, base: [15, 14, 21], vein: [44, 52, 46], metal: [120, 220, 80], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.16 });
-    S.marble = { white, cream, black, obsidian, ms: Math.round(performance.now() - t0) };
+    const carbon = genForgedCarbon(192, 77);
+    S.marble = { white, cream, black, obsidian, carbon, ms: Math.round(performance.now() - t0) };
+    document.documentElement.style.setProperty('--carbon-img', 'url("' + carbon + '")');
     const st = document.documentElement.style;
     st.setProperty('--marble-white-img', 'url("' + white + '")'); st.setProperty('--marble-cream-img', 'url("' + cream + '")');
     st.setProperty('--marble-black-img', 'url("' + black + '")'); st.setProperty('--marble-obsidian-img', 'url("' + obsidian + '")');
