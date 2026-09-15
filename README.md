@@ -36,4 +36,9 @@ node --check js/*.js
 node test/dsp-smoke.js    # DSP 数值冒烟测试（每种乐器出声、不发散、性能）
 ```
 
+## 报错与自动修复
+
+页面顶栏「报错 Report」会收集最近的错误、操作记录、状态与环境，加上你的描述，生成预填好的 GitHub Issue（label `bug-report`）。
+让 Claude Code 每天自动分析这些 Issue 并提出修复 PR 的设置方法见 [docs/bug-routine.md](docs/bug-routine.md)；PR 需开发者确认后才会合并。
+
 设计说明、声音架构、对标分析见 [DESIGN.md](DESIGN.md)。
