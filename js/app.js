@@ -17,7 +17,14 @@
   const KEYMAP = { z: 0, s: 1, x: 2, d: 3, c: 4, v: 5, g: 6, b: 7, h: 8, n: 9, j: 10, m: 11, q: 12, 2: 13, w: 14, 3: 15, e: 16, r: 17, 5: 18, t: 19, 6: 20, y: 21, 7: 22, u: 23, i: 24, 9: 25, o: 26, 0: 27, p: 28, '[': 29, '=': 30, ']': 31 };
   const KEYHINT = {}; for (const k in KEYMAP) KEYHINT[KEYMAP[k]] = k.toUpperCase();
   const USER_KEY = 'shisui.userPresets', LAST_KEY = 'shisui.last';
-  const INST_TILES = [['guzheng', '筝', '古筝', 'GUZHENG'], ['erhu', '胡', '二胡', 'ERHU'], ['dizi', '笛', '竹笛', 'DIZI'], ['guan', '管', '管子·唢呐', 'GUAN'], ['strings', '弦', '弦乐群', 'STRINGS']];
+  const ICONS = {
+    guzheng: '<svg viewBox="0 0 48 40"><path d="M4 12 L44 8 L44 30 L4 26 Z"/><path d="M8 15 L40 12 M8 18.5 L40 16 M8 22 L40 20 M8 25.5 L40 24"/><path class="fill" d="M14 13.5 l1.6 3 h-3.2z M22 16.5 l1.6 3 h-3.2z M30 19 l1.6 3 h-3.2z M18 22 l1.6 3 h-3.2z M34 22.8 l1.6 3 h-3.2z"/><path d="M4 26 L4 32 M44 30 L44 34"/></svg>',
+    erhu: '<svg viewBox="0 0 48 40"><path d="M22 3 L22 27"/><path d="M18 6 L22 7 M18 10 L22 11"/><circle cx="24" cy="30" r="6"/><path d="M24 24 L24 36"/><path d="M8 34 C 16 22, 30 14, 44 6"/><path d="M42 8 L44 6 L43 4"/></svg>',
+    dizi: '<svg viewBox="0 0 48 40"><rect x="3" y="16" width="42" height="8" rx="4"/><path d="M8 16 L8 24 M12 16 L12 24 M40 16 L40 24"/><circle class="fill" cx="19" cy="20" r="1.5"/><circle class="fill" cx="24" cy="20" r="1.5"/><circle class="fill" cx="29" cy="20" r="1.5"/><circle class="fill" cx="34" cy="20" r="1.5"/><circle cx="15" cy="20" r="1.2"/><path d="M6 10 Q 10 4 14 10"/></svg>',
+    guan: '<svg viewBox="0 0 48 40"><path d="M6 20 L8 18 L30 16 L30 24 L8 22 Z"/><path d="M30 16 C 38 12, 44 8, 46 4 L46 36 C 44 32, 38 28, 30 24"/><circle class="fill" cx="14" cy="20" r="1.3"/><circle class="fill" cx="19" cy="20" r="1.3"/><circle class="fill" cx="24" cy="20" r="1.3"/><path d="M2 20 L6 20"/></svg>',
+    strings: '<svg viewBox="0 0 48 40"><path d="M24 3 C 30 3, 33 8, 31 14 C 29 18, 30 20, 34 22 C 38 26, 36 36, 24 37 C 12 36, 10 26, 14 22 C 18 20, 19 18, 17 14 C 15 8, 18 3, 24 3 Z"/><path d="M24 3 L24 37"/><path d="M19 22 C 18 25, 19 28, 20 30 M29 22 C 30 25, 29 28, 28 30"/><path d="M6 12 L42 30"/></svg>',
+  };
+  const INST_TILES = [['guzheng', ICONS.guzheng, '古筝', 'GUZHENG'], ['erhu', ICONS.erhu, '二胡', 'ERHU'], ['dizi', ICONS.dizi, '竹笛', 'DIZI'], ['guan', ICONS.guan, '管子·唢呐', 'GUAN'], ['strings', ICONS.strings, '弦乐群', 'STRINGS']];
   const INST_GROUP = { guzheng: 'guzheng', erhu: 'erhu', dizi: 'dizi', guan: 'guan', strings: 'strings' };
 
   /* ================= 参数核心 ================= */
@@ -40,6 +47,7 @@
   }
   function setParam(id, v, opts) {
     opts = opts || {}; const p = S.PARAM_MAP[id]; if (!p) return; state.patch[id] = v;
+    if (id === 'rnd.depth') state.effCache = {};
     if (!modIndex[id]) { engine.apply(id, v); hostApply(id, v); }
     const c = controls[id]; if (c && !opts.fromControl) { if (c instanceof UI.Knob) c.set(S.norm(p, v), true); else c.set(v); }
     if (id === 'inst' && !opts.noRebuild) buildInstPanel();
@@ -67,7 +75,9 @@
   function modTick(dt) {
     const src = sourceValues(dt);
     for (const id in modIndex) {
-      const p = S.PARAM_MAP[id]; let n = normOf(id); for (const m of modIndex[id]) n += m.amt * (src[m.src] || 0); n = n < 0 ? 0 : n > 1 ? 1 : n;
+      const p = S.PARAM_MAP[id]; let n = normOf(id); const depth = state.patch['rnd.depth'];
+      for (const m of modIndex[id]) { const isRnd = m.src === 'DECAY' || (m.src[0] === 'R' && m.src.length === 2); n += m.amt * (src[m.src] || 0) * (isRnd ? depth : 1); }
+      n = n < 0 ? 0 : n > 1 ? 1 : n;
       const prev = state.effCache[id]; if (prev == null || Math.abs(prev - n) > 0.0015) { state.effCache[id] = n; const v = S.denorm(p, n); engine.apply(id, v); hostApply(id, v); if (id === 'vn.on') setVenomUI(v >= 0.5); const c = controls[id]; if (c) c.setMod(n); }
     }
   }
@@ -103,13 +113,18 @@
     /* --- 宏 + XY --- */
     const pm = UI.panel('p-macro', '宏', 'MACROS · 先转这四个', 1, 'col-4');
     pm.body.appendChild(UI.row([K('mac.1', true), K('mac.2', true), K('mac.3', true), K('mac.4', true)], 'macros'));
+    const wk = K('tone.warm', true); wk.el.classList.add('warm-knob');
+    const wrow = UI.el('div', 'warm-row'); wrow.appendChild(UI.el('div', 'warm-side cold', '❄<br><span class="zh">寒风</span><span class="en">Cold</span>')); wrow.appendChild(wk.el); wrow.appendChild(UI.el('div', 'warm-side warm', '🔥<br><span class="zh">烤火</span><span class="en">Warm</span>'));
+    pm.body.appendChild(wrow);
     const xyWrap = UI.el('div'); const xyEl = UI.el('div', 'xy'); xyWrap.appendChild(xyEl); xyWrap.appendChild(UI.el('div', 'xy-labels', '<span>← X 源 · X source →</span><span>↑ Y 源 · Y source</span>'));
     pm.body.appendChild(xyWrap); main.appendChild(pm);
     xyPad = new UI.XYPad(xyEl, (x, y) => { state.xy = [x, y]; });
     xyEl.title = 'XY 板：X / Y 是两个调制源。在"深"模式的调制矩阵或用芯片把它们接到任何旋钮。';
     /* --- 示波器 --- */
-    const ps = UI.panel('p-scope', '石窗', 'SCOPE · 波形 / 频谱', 1, 'col-4');
-    const sw = UI.el('div', 'scope-wrap'); const cv = document.createElement('canvas'); sw.appendChild(cv); ps.body.appendChild(sw);
+    const ps = UI.panel('p-scope', '石窗', 'SCOPE · 共振沙图 / 波形', 1, 'col-4');
+    const sw = UI.el('div', 'scope-wrap'); const cv = document.createElement('canvas'); sw.appendChild(cv);
+    const sm = UI.el('div', 'scope-modes'); const bSand = UI.btn(UI.bi('沙', 'Sand'), 'on', () => { scope.mode = 'sand'; bSand.classList.add('on'); bWave.classList.remove('on'); }, '克拉尼共振沙图：声音的频率决定石板上的沙子聚成什么图形 · Chladni sand figure'); const bWave = UI.btn(UI.bi('波', 'Wave'), '', () => { scope.mode = 'wave'; bWave.classList.add('on'); bSand.classList.remove('on'); }, '波形 + 频谱 · Waveform');
+    sm.appendChild(bSand); sm.appendChild(bWave); sw.appendChild(sm); ps.body.appendChild(sw);
     ps.body.appendChild(UI.row([K('master.vol'), K('comp.amount'), K('flt.cutoff'), K('rev.mix')]));
     arpChip = UI.el('div', 'small', '');
     const ga = UI.group('琶音 · 走带', [K('bpm'), K('arp.mode'), K('arp.rate'), K('arp.oct'), K('arp.gate')], 'lvl2-inline');
@@ -122,8 +137,16 @@
     for (const o of srcSpec.options) { const ch = UI.el('div', 'chip', o[1]); ch.title = '选择随机源'; ch.addEventListener('click', () => setParam('rnd.source', o[0], { commit: true })); chips.appendChild(ch); srcChipEls[o[0]] = ch; }
     pr.body.appendChild(chips);
     const orbs = UI.el('div', 'orbs'); orbEls = [];
-    for (let i = 0; i < 4; i++) { const o = UI.el('div', 'orb', '<div class="orb-ball"><div class="orb-fill"></div></div><div class="orb-name">R' + (i + 1) + '</div><div class="orb-val">0.500</div><div class="orb-src">—</div>'); o.title = '接口 R' + (i + 1) + '：点我，再点任意旋钮 → 接线调制'; o.addEventListener('click', () => arm('R' + (i + 1))); orbs.appendChild(o); orbEls.push(o); }
+    for (let i = 0; i < 4; i++) {
+      const o = UI.el('div', 'orb', '<div class="orb-ball"><div class="porthole"><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><span class="bolt"></span><canvas width="100" height="100"></canvas></div></div><div class="orb-name">R' + (i + 1) + '</div><div class="orb-val">0.500</div><div class="orb-src">—</div>');
+      o.title = '接口 R' + (i + 1) + '：点我，再点任意旋钮 → 接线调制 · Port R' + (i + 1) + ': click, then any knob to route'; o.addEventListener('click', () => arm('R' + (i + 1))); orbs.appendChild(o); orbEls.push(o);
+    }
     pr.body.appendChild(orbs);
+    pr.body.appendChild(UI.row([
+      UI.btn(UI.bi('⟲ 复位', 'Reset'), '', resetRandom, '接口 R1–R4 归零到 0.5，重置碳-14 样本与 π 位置 · Reset ports to 0.5, reset the C-14 sample and π position'),
+      UI.btn(UI.bi('⛓ 断开', 'Unroute'), '', unrouteRandom, '拆掉所有随机接口 / 衰变脉冲的接线 · Remove every routing from R1–R4 and Decay'),
+      K('rnd.depth'),
+    ]));
     rndViewEl = UI.el('div', 'rnd-view'); pr.body.appendChild(rndViewEl);
     const rb = UI.btn(UI.bi('⟳ 刷新', 'Refresh · Space'), 'gold', () => { bus.refresh(); pulseOrbs(); }, '从当前随机源取 4 个新数给 R1–R4');
     pr.body.appendChild(UI.row([rb, K('rnd.rate'), K('rnd.slew'), K('rnd.wild'), UI.btn(UI.bi('🎲 惊喜', 'Surprise'), '', surprise, '随机化整套音色（跳过锁定的旋钮） Randomize the whole patch (locked knobs are skipped)')]));
@@ -242,13 +265,55 @@
   }
   function arm(src) { state.armed = src; document.body.classList.add('arming'); $('#arm-banner').textContent = '已选中源 ' + src + '：点任意旋钮完成接线（Esc 取消） · Source armed: click any knob to route (Esc cancels)'; document.querySelectorAll('.chip[data-src], .orb').forEach((e) => e.classList.toggle('armed', e.dataset.src === src || e.querySelector('.orb-name') && e.querySelector('.orb-name').textContent === src)); }
   function disarm() { state.armed = null; document.body.classList.remove('arming'); document.querySelectorAll('.armed').forEach((e) => e.classList.remove('armed')); }
+  function resetRandom() {
+    for (let i = 0; i < 4; i++) { bus.raw[i] = 0.5; bus.val[i] = 0.5; } bus.lastSrcUsed = []; bus.c14.reset(real('c14.atoms')); bus.pi.seek(0); state.decayEnv = 0; state.effCache = {};
+    pulseOrbs(); toast('随机接口已复位 · Ports reset');
+  }
+  function unrouteRandom() {
+    const n = state.mods.filter((m) => m.src === 'DECAY' || (m.src[0] === 'R' && m.src.length === 2)).length;
+    if (!n) { toast('没有随机接线 · Nothing to unroute'); return; }
+    if (!confirm('拆掉 ' + n + ' 条随机接线？\nRemove ' + n + ' random routings?')) return;
+    state.mods = state.mods.filter((m) => !(m.src === 'DECAY' || (m.src[0] === 'R' && m.src.length === 2))); rebuildModIndex(); pushUndo(); toast('已断开 ' + n + ' 条随机接线 · Unrouted');
+  }
+  /* 舷窗: 阳光 (crypto / π / mix) 或 碳矿石 (C-14) */
+  const oreSeeds = []; for (let i = 0; i < 4; i++) { const a = []; for (let k = 0; k < 26; k++) a.push([Math.random(), Math.random(), 0.5 + Math.random() * 1.6, Math.random()]); oreSeeds.push(a); }
+  function drawPorthole(cv, v, mode, venom, t) {
+    const ctx = cv.getContext('2d'); const W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H);
+    ctx.save(); ctx.beginPath(); ctx.arc(W / 2, H / 2, W / 2, 0, Math.PI * 2); ctx.clip();
+    if (mode === 'ore') {
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#2a2622'); g.addColorStop(1, '#0e0c0a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.moveTo(0, 10 + k * 16 + Math.sin(k) * 4); ctx.lineTo(W, 18 + k * 16 + Math.cos(k * 1.3) * 6); ctx.stroke(); }
+      const seeds = oreSeeds[cv._idx || 0]; const count = Math.round(v * seeds.length); const col = venom ? [140, 255, 90] : [232, 193, 90];
+      for (let k = 0; k < seeds.length; k++) {
+        const [sx, sy, sr, ph] = seeds[k]; const on = k < count; const x = sx * W, y = sy * H; const r = sr * (W / 40);
+        const pulse = on ? 0.7 + 0.3 * Math.sin(t * 2 + ph * 6.28) : 0.15;
+        if (on) { const rg = ctx.createRadialGradient(x, y, 0, x, y, r * 4); rg.addColorStop(0, 'rgba(' + col.join(',') + ',' + 0.35 * pulse + ')'); rg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = rg; ctx.fillRect(x - r * 4, y - r * 4, r * 8, r * 8); }
+        ctx.fillStyle = on ? 'rgba(' + col.join(',') + ',' + pulse + ')' : 'rgba(90,84,76,0.9)';
+        ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.8, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.8, y); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = 'bold 15px Menlo, monospace'; ctx.textAlign = 'center'; ctx.fillText(Math.round(v * 100) + '%', W / 2, H * 0.62);
+    } else {
+      const day = v; const top = [8 + 40 * day, 12 + 90 * day, 40 + 170 * day], bot = [60 + 190 * day, 40 + 140 * day, 30 + 60 * day];
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgb(' + top.map((x) => x | 0).join(',') + ')'); g.addColorStop(1, 'rgb(' + bot.map((x) => x | 0).join(',') + ')'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const sy = H * (0.9 - 0.75 * day), sx = W * 0.5, sr = W * (0.08 + 0.1 * day);
+      const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 4); glow.addColorStop(0, 'rgba(255,240,180,' + (0.35 + 0.5 * day) + ')'); glow.addColorStop(1, 'rgba(255,200,80,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = venom ? 'rgb(' + (140 + 60 * day) + ',255,' + (90 + 100 * day) + ')' : 'rgb(255,' + (200 + 50 * day) + ',' + (120 + 100 * day) + ')'; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+      // 海面
+      const sea = ctx.createLinearGradient(0, H * 0.68, 0, H); sea.addColorStop(0, 'rgba(10,30,60,' + (0.6 - 0.2 * day) + ')'); sea.addColorStop(1, 'rgba(5,15,35,0.9)'); ctx.fillStyle = sea; ctx.fillRect(0, H * 0.68, W, H * 0.32);
+      ctx.strokeStyle = 'rgba(255,240,200,' + (0.15 + 0.35 * day) + ')'; ctx.lineWidth = 1.5;
+      for (let k = 0; k < 4; k++) { const yy = H * 0.72 + k * 6; ctx.beginPath(); for (let x = W * 0.3; x < W * 0.7; x += 4) ctx.lineTo(x, yy + Math.sin(x * 0.3 + t * 3 + k) * 1.5); ctx.stroke(); }
+      if (day < 0.35) { ctx.fillStyle = 'rgba(255,255,255,' + (0.35 - day) + ')'; for (let k = 0; k < 14; k++) ctx.fillRect(((k * 37) % 100) / 100 * W, ((k * 53) % 60) / 100 * H, 1.5, 1.5); }
+    }
+    ctx.restore();
+  }
   function updateSrcChips() { for (const k in srcChipEls) srcChipEls[k].classList.toggle('on', k === real('rnd.source')); }
   function pulseOrbs(i) { orbEls.forEach((o, j) => { if (i == null || i === j) { o.classList.remove('pulse'); void o.offsetWidth; o.classList.add('pulse'); setTimeout(() => o.classList.remove('pulse'), 160); } }); }
 
   /* ================= 随机视图 ================= */
   function updateRandomViews() {
-    for (let i = 0; i < 4; i++) { const v = bus.get(i); const o = orbEls[i]; if (!o) continue; o.querySelector('.orb-fill').style.height = (v * 76) + '%'; o.querySelector('.orb-val').textContent = v.toFixed(3); o.querySelector('.orb-src').textContent = bus.lastSrcUsed[i] || '—'; }
-    const src = real('rnd.source'); let html = '';
+    const src = real('rnd.source'); const venom = document.body.classList.contains('venom'); const tnow = performance.now() / 1000;
+    for (let i = 0; i < 4; i++) { const v = bus.get(i); const o = orbEls[i]; if (!o) continue; const cv = o.querySelector('canvas'); cv._idx = i; const su = bus.lastSrcUsed[i] || (src === 'c14' ? 'C14' : ''); drawPorthole(cv, v, su === 'C14' || (src === 'c14' && !su) ? 'ore' : 'sun', venom, tnow + i); o.querySelector('.orb-val').textContent = v.toFixed(3); o.querySelector('.orb-src').textContent = su === 'C14' ? '碳晶 ore' : su ? '阳光 sun · ' + su : '—'; }
+    let html = '';
     if (src === 'pi') { const w = bus.pi.window(36, 24); html = '<span class="dim">π 第 ' + w.start + ' 位起 · 已取 ' + bus.pi.pos + ' 位 · 已算 ' + bus.pi.digits.length + ' 位</span><br>' + w.digits.map((d, k) => { const idx = w.start + k; return idx >= bus.pi.pos && idx < bus.pi.pos + 4 ? '<span class="hl">' + d + '</span>' : (idx < bus.pi.pos ? '<span class="dim">' + d + '</span>' : d); }).join(''); }
     else if (src === 'crypto') { html = '<span class="dim">crypto.getRandomValues · 32-bit 字</span><br>' + bus.crypto.hexLog.slice(-16).join(' '); }
     else { const c = bus.c14; html = '<span class="dim">碳-14 · 半衰期 5730 年 · λ = 1.21e-4 /年</span><br>剩余原子 <b>' + Math.round(c.N).toLocaleString() + '</b> / ' + Math.round(c.N0).toLocaleString() + '<br>已过 ' + c.age.toFixed(0) + ' 年 (' + c.halfLives.toFixed(3) + ' 个半衰期) · 累计衰变 ' + c.total.toLocaleString() + '<br>活度 ≈ ' + c.ratePerSec.toFixed(1) + ' 次/秒' + (src === 'mix' ? '<br><span class="dim">三源混合：每个接口随机取自 crypto / π / C-14</span>' : ''); }
@@ -388,15 +453,21 @@
 
   /* ================= 界面杂项 ================= */
   let toastT; function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
-  function setVenomUI(on) { document.body.classList.toggle('venom', on); $('#btn-venom').classList.toggle('on', on); document.querySelectorAll('.veins-light').forEach((e) => e.classList.toggle('hidden', on)); document.querySelectorAll('.veins-dark').forEach((e) => e.classList.toggle('hidden', !on)); }
+  function setVenomUI(on) {
+    const was = document.body.classList.contains('venom');
+    document.body.classList.toggle('venom', on); $('#btn-venom').classList.toggle('on', on); document.querySelectorAll('.veins-light').forEach((e) => e.classList.toggle('hidden', on)); document.querySelectorAll('.veins-dark').forEach((e) => e.classList.toggle('hidden', !on));
+    if (on && !was && !store.get('shisui.venomSeen', false)) { store.set('shisui.venomSeen', true); openVenomIntro(); }
+  }
+  function openVenomIntro() { $('#venom-intro').classList.add('open'); }
+  function setLang(mode) { UI.applyLang(mode); document.querySelectorAll('#lang-toggle button').forEach((b) => b.classList.toggle('on', b.dataset.lang === mode)); store.set('shisui.lang', mode); }
   function setMode(m) { state.mode = m; document.body.classList.remove('mode-play', 'mode-shape', 'mode-deep'); document.body.classList.add('mode-' + m); document.querySelectorAll('.mode-tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === m)); }
   let vuPeak = 0; function drawVU() { const cv = $('#vu'); const ctx = cv.getContext('2d'); const W = cv.width = 90, H = cv.height = 26; const td = new Float32Array(engine.analyser.fftSize); engine.analyser.getFloatTimeDomainData(td); let s = 0; for (let i = 0; i < td.length; i++) s += td[i] * td[i]; const rms = Math.sqrt(s / td.length); const db = 20 * Math.log10(rms + 1e-6); const x = Math.max(0, Math.min(1, (db + 48) / 48)); vuPeak = Math.max(x, vuPeak * 0.96); ctx.clearRect(0, 0, W, H); const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7fbf5a'); g.addColorStop(0.7, '#e8c15a'); g.addColorStop(1, '#ff5a3c'); ctx.fillStyle = g; ctx.fillRect(2, 6, (W - 4) * x, H - 12); ctx.fillStyle = '#fff'; ctx.fillRect(2 + (W - 4) * vuPeak - 1, 4, 2, H - 8); }
   function buildPalette() {
     const entries = [];
     for (const p of S.PARAMS) entries.push({ kind: '参数', label: p.label, en: p.en + ' ' + p.id, abbr: S.GROUPS[p.group] || '', act: () => { const c = controls[p.id]; if (!c) return; if (!c.el.offsetParent) setMode('deep'); setTimeout(() => c.flash(), 50); info(p); } });
     allPresets().forEach((pr, i) => entries.push({ kind: pr.user ? '我的预设' : '预设', label: pr.name, en: pr.tags.join(' '), act: () => loadPreset(i) }));
-    for (const [id, ico, name, en] of INST_TILES) entries.push({ kind: '乐器', label: name, en, act: () => setParam('inst', id, { commit: true }) });
-    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
+    for (const [id, , name, en] of INST_TILES) entries.push({ kind: '乐器', label: name, en, act: () => setParam('inst', id, { commit: true }) });
+    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['毒液模式玩法引导', 'venom guide', openVenomIntro], ['复位随机接口', 'reset random ports', resetRandom], ['断开随机接线', 'unroute random', unrouteRandom], ['语言：双语', 'language both', () => setLang('both')], ['语言：中文', 'language chinese', () => setLang('zh')], ['Language: English', 'language english', () => setLang('en')], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
     for (const [l, e, f] of acts) entries.push({ kind: '动作', label: l, en: e, act: f });
     if (!palette) palette = new UI.Palette($('#palette'), { onPick: (e) => e.act() }); palette.setEntries(entries);
   }
@@ -410,6 +481,12 @@
     $('#btn-surprise').addEventListener('click', surprise); $('#btn-undo').addEventListener('click', undo); $('#btn-redo').addEventListener('click', redo); $('#btn-ab').addEventListener('click', abToggle);
     $('#btn-venom').addEventListener('click', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true }));
     $('#btn-help').addEventListener('click', () => $('#help').classList.add('open')); $('#help-close').addEventListener('click', () => $('#help').classList.remove('open'));
+    $('#btn-venom-help').addEventListener('click', openVenomIntro); $('#venom-intro-close').addEventListener('click', () => $('#venom-intro').classList.remove('open'));
+    $('#venom-intro').addEventListener('click', (e) => { if (e.target.id === 'venom-intro') $('#venom-intro').classList.remove('open'); });
+    $('#venom-take-me').addEventListener('click', () => { $('#venom-intro').classList.remove('open'); const i = allPresets().findIndex((p) => p.name.startsWith('毒液胡')); if (i >= 0) loadPreset(i); setMode('shape'); setTimeout(() => { const c = controls['vn.amt']; if (c) c.flash(); toast('按住一个低音键 3 秒，再慢慢转"毒液量" · Hold a low note, then turn Venom amount'); }, 400); });
+    $('#venom-preset-bass').addEventListener('click', () => { $('#venom-intro').classList.remove('open'); const i = allPresets().findIndex((p) => p.name.startsWith('毒液低音')); if (i >= 0) loadPreset(i); setMode('shape'); });
+    document.querySelectorAll('#lang-toggle button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
+    setLang(store.get('shisui.lang', 'both'));
     $('#help').addEventListener('click', (e) => { if (e.target.id === 'help') $('#help').classList.remove('open'); });
     $('#btn-panic').addEventListener('click', () => { engine.panic(); if (sched) { sched.clearAll(); sched.held = []; } toast('全部静音'); });
     $('#oct-down').addEventListener('click', () => setOctave(state.octave - 1)); $('#oct-up').addEventListener('click', () => setOctave(state.octave + 1));
@@ -422,7 +499,7 @@
       if (typing) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
-      if (e.key === 'Escape') { if (state.armed) { disarm(); return; } if (palette.c.classList.contains('open')) { palette.close(); return; } if ($('#help').classList.contains('open')) { $('#help').classList.remove('open'); return; } const now = Date.now(); if (now - state.escAt < 500) { engine.panic(); toast('全部静音'); } state.escAt = now; return; }
+      if (e.key === 'Escape') { if (state.armed) { disarm(); return; } if (palette.c.classList.contains('open')) { palette.close(); return; } if ($('#help').classList.contains('open')) { $('#help').classList.remove('open'); return; } if ($('#venom-intro').classList.contains('open')) { $('#venom-intro').classList.remove('open'); return; } const now = Date.now(); if (now - state.escAt < 500) { engine.panic(); toast('全部静音'); } state.escAt = now; return; }
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); bus.refresh(); pulseOrbs(); return; }

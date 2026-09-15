@@ -58,7 +58,11 @@
       const lim = this.lim = ctx.createDynamicsCompressor(); lim.threshold.value = -1; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1; lim.knee.value = 0;
       const an = this.analyser = ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.75;
 
-      synth.connect(filter); filter.connect(amp); amp.connect(choIn); choOut.connect(dlyIn); dlyOut.connect(revIn); revOut.connect(comp); comp.connect(master); master.connect(lim); lim.connect(an); an.connect(ctx.destination);
+      /* 冷暖: 倾斜 EQ (低架 / 高架) */
+      const tLow = this.tiltLow = ctx.createBiquadFilter(); tLow.type = 'lowshelf'; tLow.frequency.value = 260; tLow.gain.value = 0;
+      const tHigh = this.tiltHigh = ctx.createBiquadFilter(); tHigh.type = 'highshelf'; tHigh.frequency.value = 3200; tHigh.gain.value = 0;
+      this.warmth = 0;
+      synth.connect(filter); filter.connect(amp); amp.connect(tLow); tLow.connect(tHigh); tHigh.connect(choIn); choOut.connect(dlyIn); dlyOut.connect(revIn); revOut.connect(comp); comp.connect(master); master.connect(lim); lim.connect(an); an.connect(ctx.destination);
 
       /* 录音抓取 (限幅之后，与你听到的一致) */
       const rec = this.rec = new AudioWorkletNode(ctx, 'shisui-rec', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
@@ -99,6 +103,11 @@
         case 'dly.time': this.dA.delayTime.setTargetAtTime(v, t, 0.05); this.dB.delayTime.setTargetAtTime(v, t, 0.05); break;
         case 'dly.fb': this.dlyFb.gain.setTargetAtTime(v, t, tc); break;
         case 'dly.mix': this.dlyWet.gain.setTargetAtTime(v, t, tc); break;
+        case 'tone.warm': {
+          this.warmth = v; this.P.warmth = v; this.dirtyP = true; const cold = v < 0 ? -v : 0, warm = v > 0 ? v : 0;
+          this.tiltLow.gain.setTargetAtTime(warm * 5 - cold * 3, t, 0.05); this.tiltHigh.gain.setTargetAtTime(cold * 6 - warm * 7, t, 0.05);
+          this.A.tubeBiasOffset = warm * 0.35; this.dirtyA = true; this.scheduleIR(); break;
+        }
         case 'rev.size': this.revSize = v; this.scheduleIR(); break;
         case 'rev.damp': this.revDamp = v; this.scheduleIR(); break;
         case 'rev.mix': this.revWet.gain.setTargetAtTime(v, t, tc); break;
@@ -114,8 +123,8 @@
     }
     scheduleIR() { clearTimeout(this._revTimer); this._revTimer = setTimeout(() => this.genIR(), 180); }
     genIR() {
-      const ctx = this.ctx, sr = ctx.sampleRate; const len = Math.max(1000, Math.floor(sr * this.revSize));
-      const buf = ctx.createBuffer(2, len, sr); const damp = this.revDamp;
+      const ctx = this.ctx, sr = ctx.sampleRate; const wz = this.warmth || 0; const len = Math.max(1000, Math.floor(sr * this.revSize * (1 + (wz < 0 ? -wz * 0.6 : -wz * 0.3))));
+      const buf = ctx.createBuffer(2, len, sr); const w = this.warmth || 0; const damp = Math.min(1, Math.max(0, this.revDamp + (w > 0 ? w * 0.35 : w * 0.25)));
       for (let ch = 0; ch < 2; ch++) {
         const d = buf.getChannelData(ch); let lp = 0;
         for (let i = 0; i < len; i++) {
