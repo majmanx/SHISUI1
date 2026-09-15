@@ -16,7 +16,18 @@
 2. **塑**：切乐器瓷砖，调拨弦位置 / 弓压 / 笛膜 / 簧片，开插电，调二极管与电子管。
 3. **深**：点接口球或源芯片再点任意旋钮接线；写代码：`seq('C4 E4 . G4', 0.25)`、`onDecay(...)`。
 
-`Ctrl/⌘+K` 查找任何东西。右键旋钮锁定。`?` 看完整指南。
+4. **录**：底部"录音 · 声音槽"面板按 ● 或 `Shift+R`，录下你听到的一切，停止后进入一个槽；⬇ 导出 WAV。让槽循环再录 = 叠录新素材。
+
+`Ctrl/⌘+K` 查找任何东西。右键旋钮锁定。`💾 存预设` 存到浏览器本地，改动会自动记住。`?` 看完整指南。
+
+## 获取代码
+
+```
+git clone https://github.com/majmanx/Claude1.git
+cd Claude1
+git checkout claude/chinese-instrument-synth-y7nb27
+```
+或在 GitHub 页面切到该分支后 Code → Download ZIP，解压后双击 `index.html`。
 
 ## 测试
 

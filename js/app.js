@@ -7,13 +7,16 @@
   const S = root.SHISUI, UI = S.UI, $ = (s) => document.querySelector(s);
   const state = {
     patch: S.defaults(), mods: [], locks: new Set(), undo: [], redo: [], ab: { A: null, B: null, cur: 'A' }, mode: 'shape', armed: null,
-    presetIdx: -1, octave: 0, xy: [0.5, 0.5], wheel: 0, key: 0.5, vel: 0.8, decayEnv: 0,
+    presetIdx: -1, octave: 0, xy: [0.5, 0.5], wheel: 0, key: 0.5, vel: 0.8, decayEnv: 0, sustain: false, sustained: new Set(),
+    slots: [], recTarget: 0, slotFx: false,
     lfo: [{ ph: 0, sh: Math.random() }, { ph: 0, sh: Math.random() }], effCache: {}, escAt: 0,
   };
   const engine = new S.Engine(); const bus = new S.RandomBus();
   let sched = null, controls = {}, modIndex = {}, keyboard, xyPad, scope, palette, codeConsole;
   let instBody, modListEl, orbEls = [], rndViewEl, geigerLed, geigerCv, c14StatsEl, srcChipEls = {}, patchTA, arpChip;
-  const KEYMAP = { a: 0, w: 1, s: 2, e: 3, d: 4, f: 5, t: 6, g: 7, y: 8, h: 9, u: 10, j: 11, k: 12, o: 13, l: 14, p: 15, ';': 16, "'": 17 };
+  const KEYMAP = { z: 0, s: 1, x: 2, d: 3, c: 4, v: 5, g: 6, b: 7, h: 8, n: 9, j: 10, m: 11, q: 12, 2: 13, w: 14, 3: 15, e: 16, r: 17, 5: 18, t: 19, 6: 20, y: 21, 7: 22, u: 23, i: 24, 9: 25, o: 26, 0: 27, p: 28, '[': 29, '=': 30, ']': 31 };
+  const KEYHINT = {}; for (const k in KEYMAP) KEYHINT[KEYMAP[k]] = k.toUpperCase();
+  const USER_KEY = 'shisui.userPresets', LAST_KEY = 'shisui.last';
   const INST_TILES = [['guzheng', '筝', '古筝', 'GUZHENG'], ['erhu', '胡', '二胡', 'ERHU'], ['dizi', '笛', '竹笛', 'DIZI'], ['guan', '管', '管子·唢呐', 'GUAN'], ['strings', '弦', '弦乐群', 'STRINGS']];
   const INST_GROUP = { guzheng: 'guzheng', erhu: 'erhu', dizi: 'dizi', guan: 'guan', strings: 'strings' };
 
@@ -74,6 +77,7 @@
     bus.tick(dt); state.decayEnv *= Math.exp(-dt * 7); modTick(dt); frame++;
     if (scope && frame % 2 === 0) { scope.draw(document.body.classList.contains('venom')); drawVU(); }
     if (frame % 4 === 0) updateRandomViews();
+    if (engine.recording && recTimeEl && frame % 3 === 0) { const t = engine.recordingTime; recTimeEl.textContent = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(Math.floor(t % 60)).padStart(2, '0') + '.' + Math.floor((t % 1) * 10); }
     requestAnimationFrame(loop);
   }
 
@@ -163,7 +167,59 @@
     jsonEl.appendChild(UI.row([UI.btn('应用 JSON', 'gold', applyPatchJSON), UI.btn('复制', '', () => { patchTA.select(); document.execCommand('copy'); toast('已复制音色 JSON'); }), UI.btn('刷新显示', '', renderPatchJSON)]));
     wrap.appendChild(codeEl); wrap.appendChild(jsonEl); pc.body.appendChild(wrap); main.appendChild(pc);
     codeConsole = new S.CodeConsole(codeEl, codeAPI());
+    /* --- 录音 · 声音槽 --- */
+    const prc = UI.panel('p-rec', '录音 · 声音槽', 'RECORD · 8 SLOTS · 叠录混合', 1, 'col-12');
+    const bar = UI.el('div', 'rec-bar');
+    recBtn = UI.el('button', 'btn rec-btn', '<span class="rec-led"></span><span>● 录音</span>'); recBtn.title = '录下你听到的一切（含效果与正在播放的槽），停止后进入下一个空槽。快捷键 Shift+R'; recBtn.addEventListener('click', toggleRecord);
+    recTimeEl = UI.el('span', 'rec-time', '00:00.0');
+    const fileIn = document.createElement('input'); fileIn.type = 'file'; fileIn.accept = 'audio/*'; fileIn.multiple = true; fileIn.style.display = 'none';
+    fileIn.addEventListener('change', async () => { for (const f of Array.from(fileIn.files)) { try { const buf = await engine.decodeFile(f); putSlot(nextFreeSlot(), buf, f.name.replace(/\.[^.]+$/, '')); } catch (e) { toast('无法解码 ' + f.name); } } fileIn.value = ''; });
+    const slotFxT = UI.el('button', 'toggle', '<span class="tg-led"></span><span class="tg-label">槽过效果链</span>'); slotFxT.title = '打开：槽的声音经过滤波/放大/效果；关闭：直入总线（干净回放）'; slotFxT.addEventListener('click', () => { state.slotFx = !state.slotFx; slotFxT.classList.toggle('on', state.slotFx); });
+    bar.appendChild(recBtn); bar.appendChild(recTimeEl);
+    bar.appendChild(UI.btn('⬇ 导出上次录音', 'gold', () => { const sl = state.slots[state.lastRecSlot]; if (sl && sl.buffer) exportSlot(state.lastRecSlot); else toast('还没有录音'); }, '把最近一次录音导出为 WAV'));
+    bar.appendChild(UI.btn('📂 导入音频到槽', '', () => fileIn.click(), '把 wav/mp3/ogg 放进一个槽，用来混合创作'));
+    bar.appendChild(slotFxT); bar.appendChild(UI.btn('■ 停止所有槽', '', () => engine.stopAllSlots()));
+    bar.appendChild(UI.el('span', 'small', '提示：让几个槽循环播放，再弹奏并录音 = 叠录出新的音色素材。槽只在内存里，想留就导出 WAV。'));
+    bar.appendChild(fileIn); prc.body.appendChild(bar);
+    const grid = UI.el('div', 'slots'); state.slots = [];
+    for (let i = 0; i < 8; i++) {
+      const sl = { i, buffer: null, name: '', loop: false, gain: 0.8, rate: 1, voice: null, el: null, cv: null };
+      const el = UI.el('div', 'slot empty'); const head = UI.el('div', 'slot-head', '<span class="slot-name">槽 ' + (i + 1) + '</span><span class="slot-len">空</span>'); el.appendChild(head);
+      const cv = document.createElement('canvas'); cv.title = '点击：录到这个槽'; cv.addEventListener('click', () => { state.recTarget = i; renderSlots(); toast('下一次录音进入槽 ' + (i + 1)); }); el.appendChild(cv);
+      const ctl = UI.el('div', 'slot-ctl');
+      const play = UI.btn('▶', '', () => toggleSlot(i), '播放 / 停止'); const loop = UI.btn('循环', '', () => { sl.loop = !sl.loop; loop.classList.toggle('on', sl.loop); if (sl.voice) sl.voice.src.loop = sl.loop; }, '循环播放');
+      const exp = UI.btn('⬇', '', () => exportSlot(i), '导出 WAV'); const clr = UI.btn('✕', 'danger', () => { stopSlot(i); sl.buffer = null; sl.name = ''; renderSlots(); }, '清空');
+      ctl.appendChild(play); ctl.appendChild(loop); ctl.appendChild(exp); ctl.appendChild(clr);
+      const gl = UI.el('label', '', '音量'); const g = document.createElement('input'); g.type = 'range'; g.min = 0; g.max = 1.5; g.step = 0.01; g.value = sl.gain; g.addEventListener('input', () => { sl.gain = +g.value; if (sl.voice) sl.voice.gain.gain.setTargetAtTime(sl.gain, engine.ctx.currentTime, 0.01); }); gl.appendChild(g);
+      const rl = UI.el('label', '', '速度'); const r = document.createElement('input'); r.type = 'range'; r.min = 0.25; r.max = 2; r.step = 0.01; r.value = 1; r.title = '播放速度（连带变调）'; r.addEventListener('input', () => { sl.rate = +r.value; if (sl.voice) sl.voice.src.playbackRate.setTargetAtTime(sl.rate, engine.ctx.currentTime, 0.01); }); r.addEventListener('dblclick', () => { r.value = 1; sl.rate = 1; if (sl.voice) sl.voice.src.playbackRate.value = 1; }); rl.appendChild(r);
+      ctl.appendChild(gl); ctl.appendChild(rl); el.appendChild(ctl);
+      sl.el = el; sl.cv = cv; sl.playBtn = play; state.slots.push(sl); grid.appendChild(el);
+    }
+    prc.body.appendChild(grid); main.appendChild(prc); renderSlots();
     renderModList(); updateSrcChips();
+  }
+  let recBtn, recTimeEl;
+  const nextFreeSlot = () => { const f = state.slots.findIndex((s) => !s.buffer); return f >= 0 ? f : state.recTarget; };
+  async function toggleRecord() {
+    if (!engine.recording) { engine.startRecording(); recBtn.classList.add('on'); recBtn.querySelector('span:last-child').textContent = '■ 停止'; state.recTarget = state.slots[state.recTarget] && !state.slots[state.recTarget].buffer ? state.recTarget : nextFreeSlot(); renderSlots(); toast('录音中 → 槽 ' + (state.recTarget + 1)); return; }
+    const buf = await engine.stopRecording(); recBtn.classList.remove('on'); recBtn.querySelector('span:last-child').textContent = '● 录音'; recTimeEl.textContent = '00:00.0';
+    if (!buf) { toast('录音太短'); return; }
+    putSlot(state.recTarget, buf, '录音 ' + new Date().toLocaleTimeString()); state.lastRecSlot = state.recTarget; state.recTarget = nextFreeSlot(); renderSlots();
+  }
+  function putSlot(i, buf, name) { const sl = state.slots[i]; stopSlot(i); sl.buffer = buf; sl.name = name; renderSlots(); toast('槽 ' + (i + 1) + '：' + name + ' · ' + buf.duration.toFixed(1) + ' s'); }
+  function toggleSlot(i) { const sl = state.slots[i]; if (sl.voice && !sl.voice.done) { stopSlot(i); return; } if (!sl.buffer) { toast('槽 ' + (i + 1) + ' 是空的：录一段或导入音频'); return; } sl.voice = engine.playBuffer(sl.buffer, { loop: sl.loop, gain: sl.gain, rate: sl.rate, fx: state.slotFx, onEnd: () => { sl.voice = null; renderSlots(); } }); renderSlots(); }
+  function stopSlot(i) { const sl = state.slots[i]; if (sl.voice) { sl.voice.stop(); sl.voice = null; } renderSlots(); }
+  function exportSlot(i) { const sl = state.slots[i]; if (!sl.buffer) return; const blob = S.Engine.encodeWav(sl.buffer); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); const ts = new Date(); a.download = 'shisui-slot' + (i + 1) + '-' + [ts.getHours(), ts.getMinutes(), ts.getSeconds()].map((x) => String(x).padStart(2, '0')).join('') + '.wav'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('已导出 WAV：' + a.download); }
+  function renderSlots() {
+    state.slots.forEach((sl, i) => {
+      sl.el.classList.toggle('empty', !sl.buffer); sl.el.classList.toggle('target', i === state.recTarget); sl.el.classList.toggle('playing', !!(sl.voice && !sl.voice.done));
+      sl.el.querySelector('.slot-len').textContent = sl.buffer ? sl.buffer.duration.toFixed(1) + ' s' : '空'; sl.el.querySelector('.slot-name').textContent = sl.buffer ? (sl.name.length > 9 ? sl.name.slice(0, 9) + '…' : sl.name) : '槽 ' + (i + 1);
+      sl.playBtn.textContent = sl.voice && !sl.voice.done ? '■' : '▶';
+      const cv = sl.cv, ctx = cv.getContext('2d'); const W = cv.width = Math.max(60, cv.clientWidth || 120), H = cv.height = 36; ctx.clearRect(0, 0, W, H);
+      if (!sl.buffer) { ctx.fillStyle = 'rgba(232,193,90,0.35)'; ctx.font = '10px serif'; ctx.fillText(i === state.recTarget ? '● 下一次录音' : '空', 6, 22); return; }
+      const d = sl.buffer.getChannelData(0); const step = Math.max(1, Math.floor(d.length / W)); ctx.fillStyle = document.body.classList.contains('venom') ? '#8cff5a' : '#e8c15a';
+      for (let x = 0; x < W; x++) { let mx = 0; const o = x * step; for (let k = 0; k < step; k += 4) mx = Math.max(mx, Math.abs(d[o + k] || 0)); const h = Math.max(1, mx * H); ctx.fillRect(x, (H - h) / 2, 1, h); }
+    });
   }
   function buildInstPanel() {
     if (!instBody) return; instBody.innerHTML = '';
@@ -213,23 +269,47 @@
   /* ================= 演奏 ================= */
   function playNote(n, vel, dur) { engine.noteOn(n, vel); keyboard.light(n, true); setTimeout(() => { engine.noteOff(n); keyboard.light(n, false); }, dur * 1000); }
   function noteOn(n, vel) { state.key = n / 127; state.vel = vel; if (real('arp.mode') !== 'off') { sched.hold(n); return; } engine.noteOn(n, vel); }
-  function noteOff(n) { if (real('arp.mode') !== 'off') { sched.unhold(n); return; } engine.noteOff(n); }
-  function setOctave(o) { state.octave = Math.max(-2, Math.min(3, o)); keyboard.setBase(48 + 12 * state.octave); $('#oct-label').textContent = UI.noteName(48 + 12 * state.octave) + ' – ' + UI.noteName(48 + 12 * state.octave + 28); }
+  function noteOff(n) { if (real('arp.mode') !== 'off') { sched.unhold(n); return; } if (state.sustain) { state.sustained.add(n); return; } engine.noteOff(n); }
+  function setSustain(on) { state.sustain = on; if (!on) { for (const n of state.sustained) engine.noteOff(n); state.sustained.clear(); } }
+  function setOctave(o) {
+    state.octave = Math.max(-2, Math.min(3, o)); const base = 36 + 12 * state.octave; keyboard.setBase(base);
+    const kb = 48 + 12 * state.octave; $('#oct-label').textContent = UI.noteName(base) + ' – ' + UI.noteName(base + 57) + ' · 电脑键盘 ' + UI.noteName(kb) + ' 起';
+    keyboard.keys.forEach((el, n) => { const h = KEYHINT[n - kb]; if (h) { el.appendChild(UI.el('span', 'key-hint', h)); el.classList.add('kbd-range'); } });
+  }
 
   /* ================= 撤销 / A-B / 预设 ================= */
   const snapshot = () => ({ patch: Object.assign({}, state.patch), mods: state.mods.map((m) => Object.assign({}, m)) });
-  function pushUndo() { const s = JSON.stringify(snapshot()); if (state.undo.length && state.undo[state.undo.length - 1] === s) return; state.undo.push(s); if (state.undo.length > 80) state.undo.shift(); state.redo.length = 0; renderPatchJSON(); }
+  let saveT; function pushUndo() { const s = JSON.stringify(snapshot()); if (state.undo.length && state.undo[state.undo.length - 1] === s) return; state.undo.push(s); if (state.undo.length > 80) state.undo.shift(); state.redo.length = 0; renderPatchJSON(); clearTimeout(saveT); saveT = setTimeout(() => store.set(LAST_KEY, { snap: snapshot(), presetIdx: state.presetIdx, name: $('#preset-title').textContent }), 400); }
   function applySnapshot(snap) { for (const id in snap.patch) if (S.PARAM_MAP[id]) setParam(id, snap.patch[id], { noRebuild: true }); state.mods = snap.mods.map((m) => Object.assign({}, m)); rebuildModIndex(); buildInstPanel(); setVenomUI(!!real('vn.on')); renderPatchJSON(); }
   function undo() { if (state.undo.length < 2) return; state.redo.push(state.undo.pop()); applySnapshot(JSON.parse(state.undo[state.undo.length - 1])); toast('撤销'); }
   function redo() { if (!state.redo.length) return; const s = state.redo.pop(); state.undo.push(s); applySnapshot(JSON.parse(s)); toast('重做'); }
   function abToggle() { const cur = state.ab.cur; state.ab[cur] = snapshot(); const nxt = cur === 'A' ? 'B' : 'A'; state.ab.cur = nxt; if (state.ab[nxt]) applySnapshot(state.ab[nxt]); $('#btn-ab').textContent = nxt === 'A' ? 'A/B' : 'B/A'; toast('切换到音色槽 ' + nxt); pushUndo(); }
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 隐私模式等 */ } } };
+  const userPresets = () => store.get(USER_KEY, []);
+  const allPresets = () => S.PRESETS.concat(userPresets());
   function loadPreset(i, silent) {
-    const pr = S.PRESETS[((i % S.PRESETS.length) + S.PRESETS.length) % S.PRESETS.length]; state.presetIdx = S.PRESETS.indexOf(pr);
-    const patch = S.defaults(); Object.assign(patch, pr.patch); const mods = S.DEFAULT_MODS.concat(pr.mods || []).map((m) => ({ src: m[0], dst: m[1], amt: m[2] }));
+    const all = allPresets(); const pr = all[((i % all.length) + all.length) % all.length]; state.presetIdx = all.indexOf(pr);
+    const patch = S.defaults(); Object.assign(patch, pr.patch);
+    const mods = (pr.user ? (pr.mods || []) : S.DEFAULT_MODS.concat(pr.mods || [])).map((m) => (Array.isArray(m) ? { src: m[0], dst: m[1], amt: m[2] } : m));
     applySnapshot({ patch, mods }); $('#preset-title').textContent = pr.name; renderPresetList(); pushUndo(); if (!silent) toast('预设：' + pr.name);
   }
-  function renderPresetList() { const l = $('#preset-list'); l.innerHTML = ''; S.PRESETS.forEach((p, i) => { const d = UI.el('div', 'pi' + (i === state.presetIdx ? ' cur' : ''), '<span>' + p.name + '</span><span class="tags">' + p.tags.join(' · ') + '</span>'); d.addEventListener('click', () => { loadPreset(i); l.classList.remove('open'); }); l.appendChild(d); }); }
-  function renderPatchJSON() { if (!patchTA) return; const d = S.defaults(); const diff = {}; for (const k in state.patch) if (state.patch[k] !== d[k]) diff[k] = state.patch[k]; patchTA.value = JSON.stringify({ name: state.presetIdx >= 0 ? S.PRESETS[state.presetIdx].name : '自定义', patch: diff, mods: state.mods.map((m) => [m.src, m.dst, +m.amt.toFixed(2)]) }, null, 1); }
+  function saveUserPreset() {
+    const name = prompt('给这个音色起个名字：', state.presetIdx >= 0 ? allPresets()[state.presetIdx].name + ' · 改' : '我的音色'); if (!name) return;
+    const d = S.defaults(); const diff = {}; for (const k in state.patch) if (state.patch[k] !== d[k]) diff[k] = state.patch[k];
+    const list = userPresets().filter((p) => p.name !== name); list.push({ name, user: true, tags: ['我的', S.PARAM_MAP.inst.options.find((o) => o[0] === state.patch.inst)[1]], patch: diff, mods: state.mods.map((m) => [m.src, m.dst, +m.amt.toFixed(2)]) });
+    store.set(USER_KEY, list); state.presetIdx = allPresets().findIndex((p) => p.name === name && p.user); $('#preset-title').textContent = name; renderPresetList(); buildPalette(); toast('已保存到我的预设：' + name);
+  }
+  function deleteUserPreset(name) { store.set(USER_KEY, userPresets().filter((p) => p.name !== name)); renderPresetList(); buildPalette(); toast('已删除：' + name); }
+  function renderPresetList() {
+    const l = $('#preset-list'); l.innerHTML = ''; const all = allPresets(); let sec = '';
+    all.forEach((p, i) => {
+      const s2 = p.user ? '我的预设 (保存在此浏览器)' : '出厂预设'; if (s2 !== sec) { sec = s2; l.appendChild(UI.el('div', 'sec', sec)); }
+      const d = UI.el('div', 'pi' + (i === state.presetIdx ? ' cur' : '') + (p.user ? ' user' : ''), '<span>' + p.name + '</span><span class="tags">' + p.tags.join(' · ') + '</span>');
+      if (p.user) { const x = UI.el('button', 'del', '✕'); x.title = '删除'; x.addEventListener('click', (e) => { e.stopPropagation(); if (confirm('删除预设「' + p.name + '」？')) deleteUserPreset(p.name); }); d.appendChild(x); }
+      d.addEventListener('click', () => { loadPreset(i); l.classList.remove('open'); }); l.appendChild(d);
+    });
+  }
+  function renderPatchJSON() { if (!patchTA) return; const d = S.defaults(); const diff = {}; for (const k in state.patch) if (state.patch[k] !== d[k]) diff[k] = state.patch[k]; patchTA.value = JSON.stringify({ name: state.presetIdx >= 0 && allPresets()[state.presetIdx] ? allPresets()[state.presetIdx].name : '自定义', patch: diff, mods: state.mods.map((m) => [m.src, m.dst, +m.amt.toFixed(2)]) }, null, 1); }
   function applyPatchJSON() { try { const o = JSON.parse(patchTA.value); const patch = S.defaults(); Object.assign(patch, o.patch || {}); const mods = (o.mods || []).map((m) => Array.isArray(m) ? { src: m[0], dst: m[1], amt: m[2] } : m); applySnapshot({ patch, mods }); pushUndo(); toast('已应用 JSON'); } catch (e) { toast('JSON 解析失败: ' + e.message); } }
 
   /* ================= 惊喜随机化 ================= */
@@ -280,11 +360,11 @@
   function buildPalette() {
     const entries = [];
     for (const p of S.PARAMS) entries.push({ kind: '参数', label: p.label, en: p.en + ' ' + p.id, abbr: S.GROUPS[p.group] || '', act: () => { const c = controls[p.id]; if (!c) return; if (!c.el.offsetParent) setMode('deep'); setTimeout(() => c.flash(), 50); info(p); } });
-    S.PRESETS.forEach((pr, i) => entries.push({ kind: '预设', label: pr.name, en: pr.tags.join(' '), act: () => loadPreset(i) }));
+    allPresets().forEach((pr, i) => entries.push({ kind: pr.user ? '我的预设' : '预设', label: pr.name, en: pr.tags.join(' '), act: () => loadPreset(i) }));
     for (const [id, ico, name, en] of INST_TILES) entries.push({ kind: '乐器', label: name, en, act: () => setParam('inst', id, { commit: true }) });
-    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')]];
+    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
     for (const [l, e, f] of acts) entries.push({ kind: '动作', label: l, en: e, act: f });
-    palette = new UI.Palette($('#palette'), { onPick: (e) => e.act() }); palette.setEntries(entries);
+    if (!palette) palette = new UI.Palette($('#palette'), { onPick: (e) => e.act() }); palette.setEntries(entries);
   }
   function bindUI() {
     $('#preset-prev').addEventListener('click', () => loadPreset(state.presetIdx - 1));
@@ -312,12 +392,15 @@
       if (e.repeat) return;
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); bus.refresh(); pulseOrbs(); return; }
-      if (k === 'z') { setOctave(state.octave - 1); return; } if (k === 'x') { setOctave(state.octave + 1); return; }
+      if (k === 'r' && e.shiftKey) { toggleRecord(); return; }
+      if (k === ',') { setOctave(state.octave - 1); return; } if (k === '.') { setOctave(state.octave + 1); return; }
       if (k in KEYMAP) { e.preventDefault(); const n = 48 + 12 * state.octave + KEYMAP[k]; heldKeys.add(k); keyboard.press(n, 0.8, 'kbd'); }
     });
     document.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (heldKeys.has(k)) { heldKeys.delete(k); keyboard.release(48 + 12 * state.octave + KEYMAP[k], 'kbd'); } });
     window.addEventListener('blur', () => { for (const k of heldKeys) keyboard.release(48 + 12 * state.octave + KEYMAP[k], 'kbd'); heldKeys.clear(); });
-    engine.onMidi = (type, a, b) => { if (type === 'on') keyboard.press(a, b, 'midi'); else if (type === 'off') keyboard.release(a, 'midi'); else if (type === 'cc') { if (a === 1) state.wheel = b; else if (a === 74) setParam('flt.cutoff', S.denorm(S.PARAM_MAP['flt.cutoff'], b)); } else if (type === 'bend') { engine.P.bend = a * 2; engine.dirtyP = true; } };
+    engine.onMidi = (type, a, b) => { if (type === 'on') keyboard.press(a, b, 'midi'); else if (type === 'off') keyboard.release(a, 'midi'); else if (type === 'cc') { if (a === 1) state.wheel = b; else if (a === 64) setSustain(b >= 0.5); else if (a === 74) setParam('flt.cutoff', S.denorm(S.PARAM_MAP['flt.cutoff'], b)); } else if (type === 'bend') { engine.P.bend = a * 2; engine.dirtyP = true; } };
+    $('#btn-save').addEventListener('click', saveUserPreset);
+    window.addEventListener('beforeunload', () => { if (state.slots.some((x) => x.buffer)) return; });
     engine.onMidiState = (name) => { $('#midi-dot').classList.toggle('on', !!name); $('#midi-name').textContent = name ? name.slice(0, 22) : 'MIDI'; };
     document.addEventListener('pointerdown', () => engine.resume(), { passive: true });
     setInterval(() => { const el = $('#cpu'); if (engine.ctx && engine.ctx.baseLatency != null) el.textContent = Math.round(engine.ctx.sampleRate / 1000) + 'k · ' + Math.round((engine.ctx.baseLatency + (engine.ctx.outputLatency || 0)) * 1000) + 'ms'; }, 2000);
@@ -332,10 +415,13 @@
     sched.onArpNote = (n, on) => keyboard.light(n, on);
     buildPanels(); buildPalette(); bindUI();
     for (const p of S.PARAMS) { engine.apply(p.id, state.patch[p.id]); hostApply(p.id, state.patch[p.id]); }
-    bus.refresh(); loadPreset(0, true); state.undo = [JSON.stringify(snapshot())];
+    bus.refresh(); loadPreset(0, true);
+    const last = store.get(LAST_KEY, null);
+    if (last && last.snap && last.snap.patch) { try { applySnapshot(last.snap); state.presetIdx = last.presetIdx; $('#preset-title').textContent = last.name || '上次的音色'; renderPresetList(); setTimeout(() => toast('已恢复上次的音色'), 2600); } catch (e) { /* 忽略损坏的存档 */ } }
+    state.undo = [JSON.stringify(snapshot())];
     $('#splash').classList.add('hide'); $('#app').classList.add('on');
     requestAnimationFrame(loop);
-    setTimeout(() => toast('欢迎。先转四个宏旋钮，按 A S D F 弹奏，空格刷新随机接口。'), 600);
+    setTimeout(() => toast('欢迎。先转四个宏旋钮，按 Z X C V 弹奏，Shift+R 录音，空格刷新随机接口。'), 600);
     setInterval(() => { if (sched && arpChip) arpChip.textContent = real('arp.mode') === 'off' ? '' : '琶音中 · 按住琴键 · ' + sched.held.length + ' 音'; }, 500);
   }
   $('#enter').addEventListener('click', boot);

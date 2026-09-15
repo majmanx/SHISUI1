@@ -433,8 +433,19 @@ function DSP_WORKLET_MAIN() {
     }
   }
 
+  /* ---------- 录音: 把主输出的 PCM 分块送回主线程 ---------- */
+  class RecProcessor extends AudioWorkletProcessor {
+    constructor() { super(); this.on = false; this.L = []; this.R = []; this.n = 0; this.port.onmessage = (e) => { if (e.data.type === 'rec') { this.on = !!e.data.on; if (!this.on) this.flush(); } }; }
+    flush() { if (!this.n) return; const l = new Float32Array(this.n), r = new Float32Array(this.n); let o = 0; for (let i = 0; i < this.L.length; i++) { l.set(this.L[i], o); r.set(this.R[i], o); o += this.L[i].length; } this.L = []; this.R = []; this.n = 0; this.port.postMessage({ l, r }, [l.buffer, r.buffer]); }
+    process(inputs, outputs) {
+      const i = inputs[0]; const o = outputs[0]; if (o && o[0]) for (const c of o) c.fill(0);
+      if (this.on && i && i[0]) { this.L.push(i[0].slice()); this.R.push((i[1] || i[0]).slice()); this.n += i[0].length; if (this.n >= 8192) this.flush(); }
+      return true;
+    }
+  }
   registerProcessor('shisui-synth', SynthProcessor);
   registerProcessor('shisui-amp', AmpProcessor);
+  registerProcessor('shisui-rec', RecProcessor);
 }
 if (typeof window !== 'undefined') window.DSP_WORKLET_SRC = '(' + DSP_WORKLET_MAIN.toString() + ')();';
 if (typeof module !== 'undefined') module.exports = { DSP_WORKLET_MAIN };

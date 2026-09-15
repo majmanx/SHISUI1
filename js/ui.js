@@ -124,7 +124,7 @@
   UI.noteName = (n) => KEY_NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
   class Keyboard {
     constructor(container, opts) {
-      this.c = container; this.opts = opts || {}; this.base = 48; this.count = 29; this.keys = new Map(); this.down = new Set(); this.pointerNote = new Map(); this.build();
+      this.c = container; this.opts = opts || {}; this.base = 36; this.count = 58; this.keys = new Map(); this.down = new Set(); this.pointerNote = new Map(); this.build();
     }
     build() {
       this.c.innerHTML = ''; this.keys.clear();

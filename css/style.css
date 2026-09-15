@@ -2,6 +2,7 @@
    石髓 SHISUI · 大理石 × 液态金属 主题
    ============================================================ */
 :root {
+  --font-brush: "Ma Shan Zheng", "STKaiti", "KaiTi", "Kaiti SC", "ZCOOL XiaoWei", "Noto Serif SC", serif;
   --marble-1: #f5f1e8; --marble-2: #e6e0d2; --marble-3: #cfc6b3;
   --gold-1: #fff3b0; --gold-2: #e8c15a; --gold-3: #b8860b; --gold-4: #7a5a08;
   --ink: #2b2620; --ink-2: #5e564a; --ink-3: #8b8273;
@@ -24,7 +25,7 @@ body.venom {
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
-  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", "Cinzel", Georgia, serif;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", "Songti SC", "STSong", "SimSun", "Cinzel", Georgia, serif;
   color: var(--ink); background: var(--marble-2); overflow-x: hidden; -webkit-font-smoothing: antialiased;
   transition: color 0.8s, background 0.8s;
 }
@@ -57,7 +58,7 @@ body.low-motion .veins-glow, body.low-motion .light-burst { animation: none; }
 /* ---------- 启动幕 ---------- */
 #splash { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 40%, rgba(255, 246, 214, 0.75), rgba(214, 206, 188, 0.85) 70%); backdrop-filter: blur(4px); text-align: center; transition: opacity 0.9s; }
 #splash.hide { opacity: 0; pointer-events: none; }
-#splash h1 { font-size: clamp(42px, 9vw, 110px); margin: 0; letter-spacing: 0.25em; font-weight: 500; background: linear-gradient(160deg, #fff6c8 0%, #e8c15a 35%, #8a6512 55%, #ffe58a 75%, #b8860b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.7)) drop-shadow(0 10px 24px rgba(184, 134, 11, 0.35)); }
+#splash h1 { font-family: var(--font-brush); font-size: clamp(56px, 11vw, 150px); margin: 0; letter-spacing: 0.2em; font-weight: 400; background: linear-gradient(160deg, #fff6c8 0%, #e8c15a 35%, #8a6512 55%, #ffe58a 75%, #b8860b 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(255, 255, 255, 0.7)) drop-shadow(0 10px 24px rgba(184, 134, 11, 0.35)); }
 #splash h2 { font-weight: 400; letter-spacing: 0.4em; font-size: clamp(12px, 1.6vw, 18px); color: #6b5c3a; margin: 8px 0 30px; }
 #splash p { max-width: 560px; color: #5e564a; line-height: 1.7; margin: 0 20px 26px; font-size: 14px; }
 #enter { font-size: 20px; letter-spacing: 0.3em; padding: 16px 44px; border-radius: 999px; }
@@ -66,14 +67,14 @@ body.low-motion .veins-glow, body.low-motion .light-burst { animation: none; }
 /* ---------- 顶栏 ---------- */
 #app { display: none; }
 #app.on { display: block; }
-.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; background: linear-gradient(180deg, rgba(255, 252, 244, 0.92), rgba(238, 232, 218, 0.85)); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(184, 134, 11, 0.45); box-shadow: 0 6px 24px rgba(80, 60, 20, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.8); }
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 8px 14px; background: linear-gradient(180deg, rgba(255, 252, 244, 0.92), rgba(238, 232, 218, 0.85)); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(184, 134, 11, 0.45); box-shadow: 0 6px 24px rgba(80, 60, 20, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.8); }
 body.venom .topbar { background: linear-gradient(180deg, rgba(22, 20, 30, 0.92), rgba(12, 11, 16, 0.88)); border-bottom-color: rgba(140, 255, 90, 0.35); }
 .logo { display: flex; flex-direction: column; line-height: 1; margin-right: 6px; }
-.logo .l1 { font-size: 24px; letter-spacing: 0.22em; font-weight: 600; background: linear-gradient(160deg, #fff6c8, #e8c15a 40%, #8a6512 60%, #ffe58a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.logo .l1 { font-family: var(--font-brush); font-size: 30px; letter-spacing: 0.15em; font-weight: 400; background: linear-gradient(160deg, #fff6c8, #e8c15a 40%, #8a6512 60%, #ffe58a); -webkit-background-clip: text; background-clip: text; color: transparent; }
 body.venom .logo .l1 { background: linear-gradient(160deg, #e8ffd8, #8cff5a 40%, #c77dff 70%, #ffffff); -webkit-background-clip: text; background-clip: text; }
 .logo .l2 { font-size: 9px; letter-spacing: 0.35em; color: var(--ink-3); margin-top: 3px; }
 .preset-nav { display: flex; align-items: center; gap: 4px; position: relative; }
-.preset-name { min-width: 210px; text-align: left; padding: 7px 12px; font-size: 14px; }
+.preset-name { min-width: 175px; text-align: left; padding: 7px 12px; font-size: 14px; }
 .preset-name small { display: block; font-size: 10px; color: var(--ink-3); letter-spacing: 0.1em; }
 #preset-list { position: absolute; top: calc(100% + 6px); left: 0; width: 360px; max-height: 60vh; overflow: auto; display: none; z-index: 50; padding: 6px; }
 #preset-list.open { display: block; }
@@ -81,19 +82,19 @@ body.venom .logo .l1 { background: linear-gradient(160deg, #e8ffd8, #8cff5a 40%,
 #preset-list .pi:hover, #preset-list .pi.cur { background: rgba(232, 193, 90, 0.25); }
 #preset-list .pi .tags { font-size: 10px; color: var(--ink-3); }
 .mode-tabs { display: flex; border-radius: 999px; padding: 3px; background: rgba(120, 100, 60, 0.12); border: 1px solid rgba(184, 134, 11, 0.35); }
-.mode-tab { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: var(--ink-2); font-size: 13px; letter-spacing: 0.1em; }
+.mode-tab { font-family: var(--font-brush); border: 0; background: transparent; padding: 3px 11px; border-radius: 999px; cursor: pointer; color: var(--ink-2); font-size: 18px; letter-spacing: 0.1em; }
 .mode-tab.on { background: linear-gradient(160deg, #fff6c8, #e8c15a 60%, #c9a236); color: #2b2620; box-shadow: 0 2px 6px rgba(120, 90, 20, 0.35), inset 0 1px 0 #fff; }
 body.venom .mode-tab.on { background: linear-gradient(160deg, #dfffc8, #8cff5a 60%, #3fbd2b); }
 .spacer { flex: 1; }
 .tb-right { display: flex; align-items: center; gap: 8px; }
-#vu { width: 90px; height: 26px; border-radius: 6px; background: rgba(0, 0, 0, 0.18); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
+#vu { width: 70px; height: 26px; border-radius: 6px; background: rgba(0, 0, 0, 0.18); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
 .midi { font-size: 11px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #999; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6); }
 .dot.on { background: var(--led); box-shadow: 0 0 8px var(--led); }
 .cpu { font-size: 10px; color: var(--ink-3); min-width: 42px; }
 
 /* ---------- 按钮 (液态金属) ---------- */
-.btn { border: 1px solid rgba(90, 80, 60, 0.35); border-radius: 10px; padding: 7px 12px; cursor: pointer; font-size: 13px; color: var(--ink); background: linear-gradient(180deg, #ffffff 0%, #e4e1da 45%, #c9c5bb 50%, #ecebe6 100%); box-shadow: 0 1px 0 #fff inset, 0 2px 6px rgba(60, 50, 30, 0.2); transition: transform 0.08s, box-shadow 0.15s, filter 0.15s; white-space: nowrap; }
+.btn { border: 1px solid rgba(90, 80, 60, 0.35); border-radius: 10px; padding: 7px 10px; cursor: pointer; font-size: 13px; color: var(--ink); background: linear-gradient(180deg, #ffffff 0%, #e4e1da 45%, #c9c5bb 50%, #ecebe6 100%); box-shadow: 0 1px 0 #fff inset, 0 2px 6px rgba(60, 50, 30, 0.2); transition: transform 0.08s, box-shadow 0.15s, filter 0.15s; white-space: nowrap; }
 .btn:hover { filter: brightness(1.04); box-shadow: 0 1px 0 #fff inset, 0 4px 12px rgba(60, 50, 30, 0.25), 0 0 0 2px rgba(232, 193, 90, 0.25); }
 .btn:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.25); }
 .btn.gold { background: linear-gradient(180deg, #fff6c8 0%, #e8c15a 45%, #b8860b 52%, #f2d372 100%); border-color: #8a6512; color: #2b2620; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
@@ -122,14 +123,14 @@ body.venom .venom-switch { background: linear-gradient(180deg, #2c2937, #0f0e13)
 body.venom .panel { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(140, 255, 90, 0.12); }
 body.venom .panel::after { background: radial-gradient(ellipse at 15% 0%, rgba(200, 120, 255, 0.12), transparent 50%); }
 .panel-title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.pt-main { font-size: 15px; letter-spacing: 0.2em; font-weight: 600; background: linear-gradient(160deg, var(--gold-4), var(--gold-3) 40%, var(--gold-2) 70%, var(--gold-4)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pt-main { font-family: var(--font-brush); font-size: 21px; letter-spacing: 0.15em; font-weight: 400; background: linear-gradient(160deg, var(--gold-4), var(--gold-3) 40%, var(--gold-2) 70%, var(--gold-4)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 body.venom .pt-main { background: linear-gradient(160deg, #dfffc8, #8cff5a 45%, #c77dff 90%); -webkit-background-clip: text; background-clip: text; }
 .pt-sub { font-size: 10px; letter-spacing: 0.15em; color: var(--ink-3); text-transform: uppercase; }
 .panel-body { display: flex; flex-direction: column; gap: 8px; }
 .row { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: flex-start; }
 .grp { padding: 6px 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.28); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: inset 0 0 0 1px rgba(184, 134, 11, 0.1); }
 body.venom .grp { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.08); }
-.grp-title { font-size: 10px; letter-spacing: 0.25em; color: var(--ink-3); margin: 0 0 2px 4px; }
+.grp-title { font-family: var(--font-brush); font-size: 14px; letter-spacing: 0.2em; color: var(--ink-3); margin: 0 0 2px 4px; }
 .col-12 { grid-column: span 12; } .col-8 { grid-column: span 8; } .col-7 { grid-column: span 7; } .col-6 { grid-column: span 6; } .col-5 { grid-column: span 5; } .col-4 { grid-column: span 4; } .col-3 { grid-column: span 3; }
 @media (max-width: 1200px) { .col-3, .col-4, .col-5 { grid-column: span 6; } .col-7, .col-8 { grid-column: span 12; } }
 @media (max-width: 760px) { .panel { grid-column: span 12 !important; } }
@@ -159,7 +160,7 @@ body.mode-shape .lvl3-inline { display: none !important; }
 .knob.locked .k-body { opacity: 0.75; }
 .k-lock { pointer-events: none; }
 .knob-label { font-size: 11px; margin-top: 2px; letter-spacing: 0.05em; color: var(--ink-2); white-space: nowrap; }
-.knob.big .knob-label { font-size: 13px; letter-spacing: 0.15em; color: var(--ink); }
+.knob.big .knob-label { font-family: var(--font-brush); font-size: 17px; letter-spacing: 0.15em; color: var(--ink); }
 .knob-val { font-size: 10px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .knob.big .knob-val { font-size: 11px; }
 body.venom .k-track { stroke: rgba(255, 255, 255, 0.12); }
@@ -192,8 +193,8 @@ body.venom .toggle.on { background: linear-gradient(180deg, #2e4a26, #1c3318); }
 .tile { flex: 1 1 90px; min-width: 90px; padding: 10px 8px; border-radius: 14px; border: 1px solid rgba(90, 80, 60, 0.3); background: linear-gradient(160deg, rgba(255, 255, 255, 0.85), rgba(225, 220, 208, 0.7)); cursor: pointer; text-align: center; transition: transform 0.12s, box-shadow 0.2s; box-shadow: 0 2px 6px rgba(60, 50, 30, 0.15), inset 0 1px 0 #fff; }
 .tile:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(60, 50, 30, 0.2), inset 0 1px 0 #fff; }
 .tile.on { background: linear-gradient(160deg, #fff6c8, #e8c15a 70%, #c9a236); box-shadow: 0 0 14px var(--glow), inset 0 1px 0 #fff; border-color: #8a6512; }
-.tile .t-ico { font-size: 26px; line-height: 1.1; font-weight: 700; }
-.tile .t-name { font-size: 12px; letter-spacing: 0.15em; margin-top: 3px; }
+.tile .t-ico { font-family: var(--font-brush); font-size: 34px; line-height: 1.1; font-weight: 400; }
+.tile .t-name { font-family: var(--font-brush); font-size: 15px; letter-spacing: 0.15em; margin-top: 3px; }
 .tile .t-en { font-size: 9px; color: var(--ink-3); letter-spacing: 0.1em; }
 .tile.on .t-en { color: #5a4408; }
 body.venom .tile { background: linear-gradient(160deg, rgba(60, 55, 75, 0.8), rgba(20, 18, 28, 0.8)); border-color: rgba(200, 180, 255, 0.25); }
@@ -270,9 +271,12 @@ body.venom .keys-wrap { background: linear-gradient(180deg, rgba(12, 11, 16, 0.8
 #info-bar { flex: 1; font-size: 12px; color: var(--ink-2); min-height: 18px; letter-spacing: 0.03em; }
 #info-bar b { color: var(--gold-4); }
 body.venom #info-bar b { color: var(--gold-2); }
-#keyboard { position: relative; height: 96px; user-select: none; touch-action: none; }
+#keyboard { position: relative; height: 112px; user-select: none; touch-action: none; }
 .key { position: absolute; top: 0; border-radius: 0 0 6px 6px; cursor: pointer; transition: background 0.05s; }
 .key.white { height: 100%; background: linear-gradient(180deg, #fffdf7, #efe9da 85%, #d8d0bd); border: 1px solid rgba(90, 80, 60, 0.35); border-top: 0; box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.08); z-index: 1; }
+.key .key-hint { position: absolute; top: 4px; left: 0; right: 0; text-align: center; font-size: 9px; color: rgba(90, 80, 60, 0.55); pointer-events: none; font-family: Menlo, monospace; }
+.key.black .key-hint { color: rgba(255, 255, 255, 0.55); }
+.key.kbd-range { box-shadow: inset 0 -3px 0 var(--gold-2), inset 0 -6px 10px rgba(0, 0, 0, 0.08); }
 .key.black { height: 60%; background: linear-gradient(180deg, #4a443a, #1f1c17 80%, #3a352c); border: 1px solid #111; border-top: 0; z-index: 2; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), inset 0 -4px 6px rgba(255, 255, 255, 0.08); border-radius: 0 0 4px 4px; }
 .key.white.down, .key.white.lit { background: linear-gradient(180deg, #fff6c8, #e8c15a); box-shadow: inset 0 0 14px rgba(184, 134, 11, 0.5); }
 .key.black.down, .key.black.lit { background: linear-gradient(180deg, #b8860b, #6b4c06); }
@@ -301,7 +305,7 @@ body.venom kbd { background: rgba(255, 255, 255, 0.08); }
 #help { position: fixed; inset: 0; z-index: 95; display: none; background: rgba(30, 25, 15, 0.45); backdrop-filter: blur(4px); overflow: auto; padding: 5vh 16px; }
 #help.open { display: block; }
 .help-box { max-width: 860px; margin: 0 auto; border-radius: 18px; background: var(--panel); backdrop-filter: blur(16px); border: 1px solid var(--panel-edge); padding: 24px 28px; line-height: 1.75; font-size: 13.5px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
-.help-box h2 { margin: 0 0 6px; letter-spacing: 0.2em; }
+.help-box h2 { font-family: var(--font-brush); font-size: 30px; margin: 0 0 6px; letter-spacing: 0.2em; font-weight: 400; }
 .help-box h3 { margin: 18px 0 4px; font-size: 14px; letter-spacing: 0.15em; color: var(--gold-4); }
 body.venom .help-box h3 { color: var(--gold-2); }
 .help-box ul { margin: 4px 0 0; padding-left: 20px; }
@@ -311,3 +315,32 @@ body.venom .help-box h3 { color: var(--gold-2); }
 .toast.show { opacity: 1; }
 .small { font-size: 11px; color: var(--ink-3); }
 .hidden { display: none !important; }
+
+/* ---------- 录音 · 声音槽 ---------- */
+.rec-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rec-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; padding: 8px 16px; }
+.rec-btn .rec-led { width: 12px; height: 12px; border-radius: 50%; background: #7a2a1a; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6); }
+.rec-btn.on .rec-led { background: #ff3b2f; box-shadow: 0 0 12px #ff3b2f; animation: recBlink 1s steps(2) infinite; }
+@keyframes recBlink { 50% { opacity: 0.35; } }
+.rec-time { font-variant-numeric: tabular-nums; font-family: Menlo, monospace; font-size: 13px; min-width: 60px; color: var(--ink-2); }
+.slots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+@media (max-width: 1560px) { .slots { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 640px) { .slots { grid-template-columns: repeat(2, 1fr); } }
+.slot { border-radius: 12px; padding: 6px 7px 7px; background: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(184, 134, 11, 0.12); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.slot.empty { opacity: 0.75; }
+.slot.target { box-shadow: 0 0 0 2px #ff3b2f, inset 0 0 0 1px rgba(184, 134, 11, 0.12); }
+.slot.playing { box-shadow: 0 0 0 2px var(--gold-2), 0 0 14px var(--glow); }
+body.venom .slot { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); }
+.slot-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; }
+.slot-head .slot-name { font-family: var(--font-brush); font-size: 15px; }
+.slot-head .slot-len { font-size: 10px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.slot canvas { width: 100%; height: 36px; border-radius: 6px; background: rgba(20, 18, 14, 0.85); display: block; cursor: pointer; }
+.slot-ctl { display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
+.slot-ctl .btn { padding: 3px 7px; font-size: 11px; border-radius: 6px; }
+.slot-ctl label { font-size: 10px; color: var(--ink-3); display: flex; align-items: center; gap: 4px; flex: 1 1 100%; min-width: 0; white-space: nowrap; }
+.slot-ctl input[type=range] { width: 100%; min-width: 0; accent-color: var(--gold-3); }
+body.venom .slot-ctl input[type=range] { accent-color: var(--gold-2); }
+#preset-list .pi.user .tags::before { content: "我的 · "; color: var(--gold-3); }
+#preset-list .pi .del { border: 0; background: transparent; cursor: pointer; color: var(--ink-3); }
+#preset-list .pi .del:hover { color: var(--danger); }
+#preset-list .sec { font-size: 10px; letter-spacing: 0.2em; color: var(--ink-3); padding: 6px 10px 2px; }

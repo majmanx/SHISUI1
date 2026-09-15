@@ -60,6 +60,14 @@
 
       synth.connect(filter); filter.connect(amp); amp.connect(choIn); choOut.connect(dlyIn); dlyOut.connect(revIn); revOut.connect(comp); comp.connect(master); master.connect(lim); lim.connect(an); an.connect(ctx.destination);
 
+      /* 录音抓取 (限幅之后，与你听到的一致) */
+      const rec = this.rec = new AudioWorkletNode(ctx, 'shisui-rec', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+      const recSink = ctx.createGain(); recSink.gain.value = 0; lim.connect(rec); rec.connect(recSink); recSink.connect(ctx.destination);
+      this.recording = false; this.recChunks = []; this.recStart = 0;
+      rec.port.onmessage = (e) => { if (this.recording || this._recFlushing) this.recChunks.push(e.data); };
+      /* 声音槽输入 (可选择过效果链 / 直入总线) */
+      this.slotFx = ctx.createGain(); this.slotFx.connect(filter); this.slotDry = ctx.createGain(); this.slotDry.connect(comp); this.slotVoices = new Set();
+
       /* 盖革咔嗒 / 点击 */
       this.clickBus = ctx.createGain(); this.clickBus.gain.value = 0.5; this.clickBus.connect(revIn);
       this.ready = true;
@@ -127,6 +135,33 @@
     allOff() { if (this.ready) this.synth.port.postMessage({ type: 'allOff' }); }
     panic() { if (this.ready) this.synth.port.postMessage({ type: 'panic' }); }
     click(level) { if (this.ready) this.synth.port.postMessage({ type: 'click', level: level || 0.25 }); }
+
+    /* ---- 录音 / 声音槽 ---- */
+    startRecording() { if (!this.ready || this.recording) return; this.recChunks = []; this.recording = true; this.recStart = this.ctx.currentTime; this.rec.port.postMessage({ type: 'rec', on: true }); }
+    async stopRecording() {
+      if (!this.recording) return null; this.recording = false; this._recFlushing = true; this.rec.port.postMessage({ type: 'rec', on: false });
+      await new Promise((r) => setTimeout(r, 60)); this._recFlushing = false;
+      const n = this.recChunks.reduce((a, c) => a + c.l.length, 0); if (n < 256) return null;
+      const buf = this.ctx.createBuffer(2, n, this.ctx.sampleRate); const L = buf.getChannelData(0), R = buf.getChannelData(1); let o = 0;
+      for (const c of this.recChunks) { L.set(c.l, o); R.set(c.r, o); o += c.l.length; } this.recChunks = []; return buf;
+    }
+    get recordingTime() { return this.recording ? this.ctx.currentTime - this.recStart : 0; }
+    playBuffer(buffer, o) {
+      o = o || {}; const ctx = this.ctx; const src = ctx.createBufferSource(); src.buffer = buffer; src.loop = !!o.loop; src.playbackRate.value = o.rate || 1;
+      const g = ctx.createGain(); g.gain.value = o.gain == null ? 0.8 : o.gain; src.connect(g); g.connect(o.fx ? this.slotFx : this.slotDry);
+      const v = { src, gain: g, stop() { try { src.stop(); } catch (e) { /* 已停止 */ } }, done: false };
+      src.onended = () => { v.done = true; this.slotVoices.delete(v); if (o.onEnd) o.onEnd(); }; this.slotVoices.add(v); src.start(); return v;
+    }
+    stopAllSlots() { for (const v of Array.from(this.slotVoices)) v.stop(); }
+    static encodeWav(buffer) {
+      const ch = buffer.numberOfChannels, n = buffer.length, sr = buffer.sampleRate; const bytes = 44 + n * ch * 2; const ab = new ArrayBuffer(bytes); const dv = new DataView(ab);
+      const w = (o, str) => { for (let i = 0; i < str.length; i++) dv.setUint8(o + i, str.charCodeAt(i)); };
+      w(0, 'RIFF'); dv.setUint32(4, bytes - 8, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, ch, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * ch * 2, true); dv.setUint16(32, ch * 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * ch * 2, true);
+      const data = []; for (let c = 0; c < ch; c++) data.push(buffer.getChannelData(c)); let o = 44;
+      for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) { let v = Math.max(-1, Math.min(1, data[c][i])); dv.setInt16(o, v < 0 ? v * 32768 : v * 32767, true); o += 2; }
+      return new Blob([ab], { type: 'audio/wav' });
+    }
+    decodeFile(file) { return file.arrayBuffer().then((ab) => this.ctx.decodeAudioData(ab)); }
 
     /* ---- MIDI ---- */
     initMidi() {
