@@ -513,3 +513,18 @@ body.venom .report-box textarea { background: rgba(0, 0, 0, 0.35); }
 
 .pure-knob { margin-left: 18px; }
 .pure-knob .k-arc { stroke: url(#pureStroke); }
+
+/* #7 素面模式下按键也要发光 */
+body.plain .key.white.down, body.plain .key.white.lit { background-image: linear-gradient(180deg, #fff6c8, #e8c15a) !important; box-shadow: inset 0 0 14px rgba(184, 134, 11, 0.5); }
+body.plain .key.black.down, body.plain .key.black.lit { background-image: linear-gradient(180deg, #b8860b, #6b4c06) !important; }
+body.plain.venom .key.white.down, body.plain.venom .key.white.lit { background-image: linear-gradient(180deg, #dfffc8, #8cff5a) !important; }
+body.plain.venom .key.black.down, body.plain.venom .key.black.lit { background-image: linear-gradient(180deg, #c77dff, #5a1a99) !important; }
+/* 按下时在琴键上方浮出音名 */
+.key.down::after, .key.lit::after { content: attr(data-name); position: absolute; left: 50%; top: -26px; transform: translateX(-50%); padding: 2px 7px; border-radius: 6px; background: rgba(43, 38, 32, 0.92); color: #fff6c8; font-size: 11px; font-family: Menlo, monospace; white-space: nowrap; pointer-events: none; z-index: 5; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+body.venom .key.down::after, body.venom .key.lit::after { background: rgba(20, 18, 28, 0.95); color: #8cff5a; }
+#keyboard { overflow: visible; }
+.reset-all { color: var(--danger); }
+.acoustic-card { border-radius: 12px; padding: 8px 12px; margin-top: 6px; font-size: 12.5px; line-height: 1.6; background: rgba(255, 246, 200, 0.45); border: 1px solid rgba(184, 134, 11, 0.35); }
+body.venom .acoustic-card { background: rgba(140, 255, 90, 0.08); border-color: rgba(140, 255, 90, 0.3); }
+.acoustic-card b { color: var(--gold-4); }
+body.venom .acoustic-card b { color: var(--gold-2); }
