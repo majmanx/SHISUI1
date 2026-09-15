@@ -88,6 +88,9 @@ body.venom .mode-tab.on { background: linear-gradient(160deg, #dfffc8, #8cff5a 6
 .spacer { flex: 1; }
 .tb-break { flex-basis: 100%; height: 0; }
 .topbar { row-gap: 6px; }
+.mode-tabs { height: 42px; align-items: center; }
+.mode-tab { height: 36px; display: flex; flex-direction: column; justify-content: center; }
+.topbar .btn, .topbar .toggle, .lang-toggle, .venom-switch { min-height: 34px; }
 .tb-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #vu { width: 70px; height: 26px; border-radius: 6px; background: rgba(0, 0, 0, 0.18); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4); }
 .midi { font-size: 11px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
