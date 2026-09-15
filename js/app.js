@@ -59,9 +59,22 @@
     if (!modIndex[id]) { engine.apply(id, v); hostApply(id, v); }
     const c = controls[id]; if (c && !opts.fromControl) { if (c instanceof UI.Knob) c.set(S.norm(p, v), true); else c.set(v); }
     if (id === 'inst' && !opts.noRebuild) buildInstPanel();
-    if (id === 'vn.on') setVenomUI(!!v);
+    if (id === 'vn.on') { if (!v && (opts.fromControl || opts.commit)) releaseVenomDrivers(); setVenomUI(!!v); }
     if (opts.commit || opts.fromControl) { clearTimeout(diag._pt); diag._pt = setTimeout(() => logAction('set ' + id + ' = ' + (typeof v === 'number' ? +v.toFixed(3) : v)), 250); }
     if (opts.commit) pushUndo();
+  }
+  /* 用户手动关闭毒液时，开关必须赢：把驱动它的宏归零，其它源的接线拆掉 (Issue #2) */
+  function releaseVenomDrivers() {
+    const drivers = (modIndex['vn.on'] || []).filter((m) => m.amt > 0); if (!drivers.length) return;
+    const zeroed = [], removed = [];
+    for (const m of drivers) {
+      if (/^M[1-4]$/.test(m.src)) { const mid = 'mac.' + m.src[1]; if (real(mid) > 0) { setParam(mid, 0); zeroed.push(S.PARAM_MAP[mid].label); } }
+      else removed.push(m);
+    }
+    if (removed.length) { state.mods = state.mods.filter((m) => !removed.includes(m)); rebuildModIndex(); }
+    delete state.effCache['vn.on']; const c = controls['vn.on']; if (c) c.setMod(null);
+    const msg = (zeroed.length ? '宏「' + zeroed.join('、') + '」已归零' : '') + (removed.length ? (zeroed.length ? '；' : '') + '已拆除 ' + removed.map((m) => m.src + '→毒液').join('、') : '');
+    if (msg) toast('毒液已关闭 · ' + msg + ' · Venom off, its drivers released');
   }
   function rebuildModIndex() {
     modIndex = {}; for (const m of state.mods) (modIndex[m.dst] = modIndex[m.dst] || []).push(m);
@@ -124,6 +137,7 @@
     pm.body.appendChild(UI.row([K('mac.1', true), K('mac.2', true), K('mac.3', true), K('mac.4', true)], 'macros'));
     const wk = K('tone.warm', true); wk.el.classList.add('warm-knob');
     const wrow = UI.el('div', 'warm-row'); wrow.appendChild(UI.el('div', 'warm-side cold', '❄<br><span class="zh">寒风</span><span class="en">Cold</span>')); wrow.appendChild(wk.el); wrow.appendChild(UI.el('div', 'warm-side warm', '🔥<br><span class="zh">烤火</span><span class="en">Warm</span>'));
+    const pk = K('tone.pure', true); pk.el.classList.add('pure-knob'); wrow.appendChild(pk.el);
     pm.body.appendChild(wrow);
     const xyWrap = UI.el('div'); const xyEl = UI.el('div', 'xy'); xyWrap.appendChild(xyEl); xyWrap.appendChild(UI.el('div', 'xy-labels', '<span>← X 源 · X source →</span><span>↑ Y 源 · Y source</span>'));
     pm.body.appendChild(xyWrap); main.appendChild(pm);
