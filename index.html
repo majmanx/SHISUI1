@@ -16,6 +16,7 @@
     <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fff3b0"/><stop offset="0.45" stop-color="#e8c15a"/><stop offset="0.7" stop-color="#b8860b"/><stop offset="1" stop-color="#fff0a0"/>
     </linearGradient>
+    <linearGradient id="warmStroke" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7fc4ff"/><stop offset="0.5" stop-color="#e8c15a"/><stop offset="1" stop-color="#ff8a3c"/></linearGradient>
     <linearGradient id="goldRim" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#fff6c8"/><stop offset="0.35" stop-color="#d4a83a"/><stop offset="0.55" stop-color="#7a5a08"/><stop offset="0.8" stop-color="#f2d372"/><stop offset="1" stop-color="#a67c00"/>
     </linearGradient>
@@ -41,6 +42,11 @@
       <stop offset="0" stop-color="#dfffc8"/><stop offset="0.5" stop-color="#8cff5a"/><stop offset="1" stop-color="#c77dff"/>
     </linearGradient>
 
+    <pattern id="marbleKnob" patternUnits="userSpaceOnUse" width="100" height="100"><image href="" width="100" height="100" preserveAspectRatio="xMidYMid slice"/></pattern>
+    <pattern id="marbleKnobDark" patternUnits="userSpaceOnUse" width="100" height="100"><image href="" width="100" height="100" preserveAspectRatio="xMidYMid slice"/></pattern>
+    <radialGradient id="knobShade" cx="0.42" cy="0.36" r="0.7">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.42"/>
+    </radialGradient>
     <!-- 浅色大理石 -->
     <filter id="marbleLight" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
       <!-- 噪声等值线 = 大理石纹: 只在噪声值 ≈ 0.5 的一圈染深 -->
@@ -114,7 +120,7 @@
   <h1>石髓</h1>
   <h2>SHISUI · MARBLE × VENOM · 弦管合成器</h2>
   <p>古筝 · 二胡 · 竹笛 · 管子/唢呐 · 弦乐群 的物理建模内核，插电拾音、二极管与电子管放大链，以及由真随机、圆周率与碳-14 衰变驱动的随机接口。大理石里流淌的液态金属，光从金脉中迸出。</p>
-  <button id="enter" class="btn gold">唤 醒 石 髓 <span class="en">AWAKEN</span></button>
+  <button id="enter" class="btn gold"><span class="zh">唤 醒 石 髓</span> <span class="en">AWAKEN</span></button>
   <div class="err" id="splash-err"></div>
 </div>
 
@@ -124,24 +130,26 @@
     <div class="logo"><span class="l1">石髓</span><span class="l2">SHISUI · MARBLE VENOM SYNTH</span></div>
     <div class="preset-nav">
       <button class="btn sm" id="preset-prev" title="上一个预设">◀</button>
-      <button class="btn preset-name" id="preset-name" title="打开预设列表"><small>预设 · PRESET</small><span id="preset-title">—</span></button>
+      <button class="btn preset-name" id="preset-name" title="打开预设列表"><small><span class="zh">预设</span> <span class="en">PRESET</span></small><span id="preset-title">—</span></button>
       <button class="btn sm" id="preset-next" title="下一个预设">▶</button>
       <div id="preset-list" class="panel"></div>
     </div>
-    <button class="btn" id="btn-search" title="查找任何参数 / 预设 / 动作 · Find anything (Ctrl/⌘ + K)">⌘K 查找 <span class="en">Find</span></button>
+    <button class="btn" id="btn-search" title="查找任何参数 / 预设 / 动作 · Find anything (Ctrl/⌘ + K)">⌘K <span class="zh">查找</span> <span class="en">Find</span></button>
     <div class="mode-tabs" title="界面层级：玩 = 只看宏与随机；塑 = 加乐器/放大/效果；深 = 全部（调制矩阵、代码）">
-      <button class="mode-tab" data-mode="play">玩<span class="en">Play</span></button>
-      <button class="mode-tab on" data-mode="shape">塑<span class="en">Shape</span></button>
-      <button class="mode-tab" data-mode="deep">深<span class="en">Deep</span></button>
+      <button class="mode-tab" data-mode="play"><span class="zh">玩</span><span class="en">Play</span></button>
+      <button class="mode-tab on" data-mode="shape"><span class="zh">塑</span><span class="en">Shape</span></button>
+      <button class="mode-tab" data-mode="deep"><span class="zh">深</span><span class="en">Deep</span></button>
     </div>
-    <button class="btn gold" id="btn-surprise" title="用当前随机源随机化未锁定的参数（右键旋钮可锁定）">🎲 惊喜 <span class="en">Surprise</span></button>
+    <button class="btn gold" id="btn-surprise" title="用当前随机源随机化未锁定的参数（右键旋钮可锁定）">🎲 <span class="zh">惊喜</span> <span class="en">Surprise</span></button>
     <button class="btn sm" id="btn-undo" title="撤销 Undo (Ctrl/⌘+Z)">↶</button>
     <button class="btn sm" id="btn-redo" title="重做 Redo (Ctrl/⌘+Shift+Z)">↷</button>
     <button class="btn sm" id="btn-ab" title="A/B 对比：在两个音色槽之间切换">A/B</button>
-    <button class="btn sm" id="btn-save" title="把当前音色存为我的预设（保存在浏览器本地）">💾 存预设 <span class="en">Save</span></button>
+    <button class="btn sm" id="btn-save" title="把当前音色存为我的预设（保存在浏览器本地）">💾 <span class="zh">存预设</span> <span class="en">Save</span></button>
     <div class="spacer"></div>
     <div class="tb-right">
-      <div class="venom-switch" id="btn-venom" title="毒液模式：整台机器变成液态黑曜石，反馈FM/折叠/碎裂/流淌一起上"><div class="vs-track"><div class="vs-knob"></div></div><span class="vs-label">毒液 VENOM</span></div>
+      <div class="lang-toggle" id="lang-toggle" title="显示语言 Language：双语 / 中文 / English"><button data-lang="both" class="on">中 · EN</button><button data-lang="zh">中</button><button data-lang="en">EN</button></div>
+      <div class="venom-switch" id="btn-venom" title="毒液模式：整台机器变成液态黑曜石，反馈FM/折叠/碎裂/流淌一起上 · Venom mode"><div class="vs-track"><div class="vs-knob"></div></div><span class="vs-label"><span class="zh">毒液</span> <span class="en">VENOM</span></span></div>
+      <button class="btn sm" id="btn-venom-help" title="毒液模式怎么玩 · How to play Venom mode">毒?</button>
       <div class="midi"><span class="dot" id="midi-dot"></span><span id="midi-name">MIDI</span></div>
       <canvas id="vu" title="输出电平"></canvas>
       <span class="cpu" id="cpu"></span>
@@ -154,9 +162,9 @@
 
   <footer class="keys-wrap">
     <div class="keys-top">
-      <button class="btn sm" id="oct-down" title="降八度 Octave down ( , )">八度 − <span class="en">Oct</span></button>
+      <button class="btn sm" id="oct-down" title="降八度 Octave down ( , )"><span class="zh">八度</span> <span class="en">Oct</span> −</button>
       <span id="oct-label" class="small">C3</span>
-      <button class="btn sm" id="oct-up" title="升八度 Octave up ( . )">八度 + <span class="en">Oct</span></button>
+      <button class="btn sm" id="oct-up" title="升八度 Octave up ( . )"><span class="zh">八度</span> <span class="en">Oct</span> +</button>
       <span class="kbd-hint">电脑键盘 Computer keys：<kbd>Z</kbd>…<kbd>M</kbd> 低八度（<kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> 黑键）· <kbd>Q</kbd>…<kbd>]</kbd> 高八度（数字键黑键）· <kbd>,</kbd>/<kbd>.</kbd> 八度 · <kbd>空格</kbd> 刷新接口 · 点琴键下方更响</span>
       <div id="info-bar"></div>
     </div>
@@ -189,12 +197,18 @@
       <li>按"刷新"或空格取新数；"自动刷新"按频率取；碳-14 源下，每一次衰变事件会轮流刷新一个接口。</li>
       <li>点一个接口（或 LFO / 衰变脉冲 / XY / 宏 芯片），再点任意旋钮 → 完成一条调制接线；在"深"模式的矩阵里改深浅或删除。</li>
       <li>"衰变触发"让每次衰变按概率弹出一个五声音阶的音；"盖革咔嗒"让你听见它。</li>
+      <li>四个接口是舷窗：随机源是真随机 / π 时，窗里是阳光的高度与亮度；碳-14 源时，窗里是矿石里发光碳晶的含量。数值越大越亮 / 越满。</li>
+      <li>叠得太顶了：<b>复位</b> 把接口数值归零并重置样本；<b>断开</b> 拆掉所有随机接线；<b>接口深度</b> 整体收小随机调制。</li>
     </ul>
     <h3>插电 / 放大链</h3>
     <ul>
       <li>乐器 → <b>拾音器</b>（非对称饱和 + 可叠加振荡器层与次低音）→ 滤波 → <b>二极管削波</b>（Shockley 曲线，锗/硅不对称）→ <b>电子管</b>（三极管传输曲线、栅偏压、电源下垂、交越失真、输出变压器）→ 箱体 → 合唱 → 乒乓延迟 → 石厅混响 → 压缩。</li>
       <li><b>毒液</b>：反馈 FM、波折叠、采样碎裂、液态漂移，配黑曜石界面。宏 4 默认就是它。</li>
     </ul>
+    <h3>毒液模式</h3>
+    <p>顶栏毒液开关旁的"毒?"按钮会打开完整的玩法引导（第一次打开毒液也会自动弹出）。</p>
+    <h3>语言</h3>
+    <p>顶栏"中 · EN / 中 / EN"切换显示语言：双语、只中文、只英文。选项、旋钮、按钮全部跟随。</p>
     <h3>代码台</h3>
     <p>在"深"模式底部。<code>note('C4')</code>、<code>every(0.25, fn)</code>、<code>seq('C4 E4 . G4')</code>、<code>set('flt.cutoff', 800)</code>、<code>pi(i)</code>、<code>c14()</code>、<code>onDecay(fn)</code>、<code>mod('R1','gz.pos',0.5)</code>…点 API 查看全部。<kbd>Ctrl/⌘</kbd>+<kbd>Enter</kbd> 运行。</p>
     <h3>快捷键</h3>
@@ -207,8 +221,27 @@
     </ul>
   </div>
 </div>
+<div id="venom-intro">
+  <div class="help-box venom-box">
+    <button class="btn sm help-close" id="venom-intro-close">关闭 Close</button>
+    <h2>毒液模式 · VENOM MODE</h2>
+    <p class="lead">把一件温润的中国乐器灌进液态黑曜石。毒液不是一个效果器，而是一整套"过载的生命体"：<b>反馈 FM</b> 让弦自己咬自己，<b>波折叠</b> 把泛音折成金属棱角，<b>碎裂</b> 降低采样与位深，<b>流淌</b> 让音高像熔金一样缓慢漂移。界面同时变成黑曜石与酸绿脉络，提醒你现在弹的是另一种生物。<br><span class="en-line">Venom pours a Chinese instrument into liquid obsidian: feedback FM, wave folding, sample crushing and slow pitch ooze, all at once. The UI turns to obsidian so you know you are playing a different creature.</span></p>
+    <h3>官方玩法 · 三步领进门</h3>
+    <ol>
+      <li><b>先开小火</b>：打开毒液后把宏旋钮 <b>毒 · Venom</b> 转到 20% 左右，弹一个长音，听到弦开始"发烫"即可。<span class="en-line">Turn macro 4 to ~20% and hold a note until the string starts to "heat up".</span></li>
+      <li><b>再加咬合</b>：在"插电 · 毒液"面板里把 <b>反馈FM</b> 和 <b>折叠</b> 各推到 40–60%，配合 <b>次低音</b> 得到"斗破"的底气。太脏就降 <b>碎裂</b>。<span class="en-line">Raise Feedback FM and Fold to 40–60%, add Sub for weight; lower Crush if it gets too dirty.</span></li>
+      <li><b>最后让它活过来</b>：把随机接口 <b>R1</b> 接到 <b>折叠</b>，随机源选 <b>碳-14</b>，开"衰变触发"。每一次衰变都会改变毒液的形状。<span class="en-line">Route port R1 to Fold, choose the C-14 source and enable decay triggering: every decay reshapes the venom.</span></li>
+    </ol>
+    <h3>适合的乐器</h3>
+    <p>二胡 + 单音连奏 + 长滑音最像活物；古筝 + 摇指 + 折叠像被电流穿过的钢弦；唢呐 + 喇叭口 + 电子管是最"顶"的组合。<span class="en-line">Erhu with mono legato and long glide feels most alive; guzheng tremolo with folding sounds like electrified steel; suona with bell and tube drive is the loudest combo.</span></p>
+    <h3>控制不住的时候</h3>
+    <p>随机接口面板有 <b>复位</b>（接口数值归零）和 <b>断开</b>（拆掉所有随机接线），<b>接口深度</b> 旋钮可以整体收小随机调制；顶栏 ✕ 全部静音；Ctrl/⌘+Z 撤销。<span class="en-line">Use Reset / Unroute / Port depth in the Random bay, ✕ to panic, Ctrl/⌘+Z to undo.</span></p>
+    <div class="row"><button class="btn gold" id="venom-take-me">🐍 带我玩 · Take me in</button><button class="btn" id="venom-preset-bass">🍌 毒液低音 · Venom bass</button><span class="small">"带我玩"会载入"毒液胡"预设、切到"塑"模式并点亮毒液面板。</span></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
+<script src="js/marble.js"></script>
 <script src="js/dsp.worklet.js"></script>
 <script src="js/params.js"></script>
 <script src="js/random.js"></script>

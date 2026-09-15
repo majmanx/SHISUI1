@@ -28,6 +28,7 @@
       this.arc = svgEl('path', { class: 'k-arc', d: '' }); svg.appendChild(this.arc);
       svg.appendChild(svgEl('circle', { class: 'k-rim', cx: 50, cy: 50, r: 33 }));
       svg.appendChild(svgEl('circle', { class: 'k-body', cx: 50, cy: 50, r: 29 }));
+      svg.appendChild(svgEl('circle', { class: 'k-shade', cx: 50, cy: 50, r: 29 }));
       svg.appendChild(svgEl('ellipse', { class: 'k-gloss', cx: 44, cy: 38, rx: 16, ry: 9 }));
       this.ptr = svgEl('line', { class: 'k-ptr', x1: 50, y1: 46, x2: 50, y2: 25 }); svg.appendChild(this.ptr);
       this.modDot = svgEl('circle', { class: 'k-moddot', cx: 50, cy: 5, r: 3.2, visibility: 'hidden' }); svg.appendChild(this.modDot);
@@ -40,7 +41,7 @@
     }
     render() {
       const v = this.value; const a = -135 + 270 * v;
-      this.arc.setAttribute('d', v > 0.003 ? arcPath(50, 50, 40, -135, a) : '');
+      if (this.spec.bipolar) this.arc.setAttribute('d', Math.abs(v - 0.5) > 0.004 ? arcPath(50, 50, 40, Math.min(0, a), Math.max(0, a)) : ''); else this.arc.setAttribute('d', v > 0.003 ? arcPath(50, 50, 40, -135, a) : '');
       this.ptr.setAttribute('transform', 'rotate(' + a.toFixed(2) + ' 50 50)');
       this.valEl.textContent = S.fmt(this.spec, S.denorm(this.spec, v));
       if (this.modValue != null && Math.abs(this.modValue - v) > 0.004) {
@@ -77,9 +78,9 @@
   class Select {
     constructor(spec, opts) {
       this.spec = spec; this.opts = opts || {}; const w = (this.el = el('div', 'sel')); w.dataset.param = spec.id; w.title = (spec.tip || '') + ' (' + spec.en + ')';
-      const lab = el('div', 'sel-label', spec.label + ' <span class="en">' + spec.en + '</span>'); w.appendChild(lab);
+      const lab = el('div', 'sel-label', UI.bi(spec.label, spec.en)); w.appendChild(lab);
       const s = (this.sel = document.createElement('select'));
-      for (const o of spec.options) { const op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; s.appendChild(op); }
+      for (const o of spec.options) { const op = document.createElement('option'); op.value = String(o[0]); op.dataset.zh = o[1]; op.dataset.en = o[2] || ''; op.textContent = UI.optText(o[1], o[2]); s.appendChild(op); }
       s.value = String(spec.def); w.appendChild(s);
       s.addEventListener('change', () => { if (this.opts.onChange) this.opts.onChange(this.real()); });
       w.addEventListener('mouseenter', () => { if (this.opts.onHover) this.opts.onHover(spec); });
@@ -91,13 +92,20 @@
     setLocked() {}
   }
   UI.Select = Select;
+  /* ---------- 语言模式: both | zh | en ---------- */
+  UI.lang = 'both';
+  UI.optText = (zh, en) => (UI.lang === 'zh' || !en ? zh : UI.lang === 'en' ? en : zh + ' ' + en);
+  UI.applyLang = (mode) => {
+    UI.lang = mode; document.body.classList.remove('lang-both', 'lang-zh', 'lang-en'); document.body.classList.add('lang-' + mode);
+    document.querySelectorAll('option[data-zh]').forEach((op) => { op.textContent = UI.optText(op.dataset.zh, op.dataset.en); });
+  };
 
   /* ---------- 开关 ---------- */
   class Toggle {
     constructor(spec, opts) {
       this.spec = spec; this.opts = opts || {}; this.value = spec.def ? 1 : 0;
       const b = (this.el = el('button', 'toggle' + (this.opts.big ? ' big' : ''))); b.dataset.param = spec.id; b.title = (spec.tip || '') + ' (' + spec.en + ')';
-      b.innerHTML = '<span class="tg-led"></span><span class="tg-label">' + spec.label + ' <span class="en">' + spec.en + '</span></span>';
+      b.innerHTML = '<span class="tg-led"></span><span class="tg-label">' + UI.bi(spec.label, spec.en) + '</span>';
       b.addEventListener('click', () => { this.set(this.value ? 0 : 1); if (this.opts.onChange) this.opts.onChange(this.value); });
       b.addEventListener('mouseenter', () => { if (this.opts.onHover) this.opts.onHover(spec); });
       this.render();
@@ -117,7 +125,7 @@
     const body = el('div', 'panel-body'); p.appendChild(body); p.body = body; return p;
   };
   UI.row = (children, cls) => { const r = el('div', 'row' + (cls ? ' ' + cls : '')); for (const c of children) if (c) r.appendChild(c.el || c); return r; };
-  UI.bi = (zh, en) => zh + (en ? ' <span class="en">' + en + '</span>' : '');
+  UI.bi = (zh, en) => '<span class="zh">' + zh + '</span>' + (en ? ' <span class="en">' + en + '</span>' : '');
   UI.group = (title, children, cls) => { const g = el('div', 'grp' + (cls ? ' ' + cls : '')); if (title) g.appendChild(el('div', 'grp-title', UI.bi(title, S.TITLE_EN && S.TITLE_EN[title]))); const r = el('div', 'row'); for (const c of children) if (c) r.appendChild(c.el || c); g.appendChild(r); return g; };
   UI.btn = (label, cls, onClick, title) => { const b = el('button', 'btn' + (cls ? ' ' + cls : ''), label); if (title) b.title = title; if (onClick) b.addEventListener('click', onClick); return b; };
 
@@ -132,8 +140,8 @@
       this.c.innerHTML = ''; this.keys.clear();
       const whites = []; for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) whites.push(n); }
       const ww = 100 / whites.length;
-      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
-      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; this.c.appendChild(k); this.keys.set(n, k); }
+      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; k.style.backgroundPosition = 'center, ' + ((n * 37) % 100) + '% ' + ((n * 53) % 100) + '%'; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
+      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; k.style.backgroundPosition = 'center, ' + ((n * 41) % 100) + '% ' + ((n * 29) % 100) + '%'; this.c.appendChild(k); this.keys.set(n, k); }
       const noteAt = (e) => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.dataset && t.dataset.note ? +t.dataset.note : null; };
       const velAt = (e, k) => { const r = k.getBoundingClientRect(); return Math.min(1, Math.max(0.15, (e.clientY - r.top) / r.height * 0.9 + 0.2)); };
       this.c.addEventListener('pointerdown', (e) => { const n = noteAt(e); if (n == null) return; e.preventDefault(); this.c.setPointerCapture(e.pointerId); const v = velAt(e, this.keys.get(n)); this.pointerNote.set(e.pointerId, n); this.press(n, v, 'mouse'); });
@@ -165,23 +173,73 @@
   }
   UI.XYPad = XYPad;
 
-  /* ---------- 示波器 / 频谱 ---------- */
+  /* ---------- 石窗: 克拉尼沙图 (共振粒子) / 波形 ---------- */
   class Scope {
-    constructor(canvas, analyser) { this.cv = canvas; this.an = analyser; this.td = new Uint8Array(analyser.fftSize); this.fd = new Uint8Array(analyser.frequencyBinCount); this.mode = 'both'; }
-    draw(venom) {
-      const cv = this.cv, ctx = cv.getContext('2d'); const W = cv.width = cv.clientWidth * (devicePixelRatio > 1 ? 2 : 1), H = cv.height = cv.clientHeight * (devicePixelRatio > 1 ? 2 : 1);
-      ctx.clearRect(0, 0, W, H);
+    constructor(canvas, analyser) {
+      this.cv = canvas; this.an = analyser; this.td = new Uint8Array(analyser.fftSize); this.fd = new Uint8Array(analyser.frequencyBinCount);
+      this.mode = 'sand'; this.N = 1500; this.px = new Float32Array(this.N); this.py = new Float32Array(this.N); this.pv = new Float32Array(this.N);
+      for (let i = 0; i < this.N; i++) { this.px[i] = Math.random(); this.py[i] = Math.random(); }
+      this.m = 2; this.n = 3; this.tm = 2; this.tn = 3; this.amp = 0; this.frame = 0; this.rot = 0;
+    }
+    analyse() {
       this.an.getByteFrequencyData(this.fd); this.an.getByteTimeDomainData(this.td);
+      const sr = this.an.context.sampleRate, bins = this.fd.length; const hz = (b) => (b * sr) / (2 * bins);
+      let sum = 0; for (let i = 0; i < this.td.length; i++) { const v = (this.td[i] - 128) / 128; sum += v * v; } const rms = Math.sqrt(sum / this.td.length);
+      this.amp += (rms - this.amp) * (rms > this.amp ? 0.5 : 0.04);
+      // 两个主峰 → 克拉尼模态 (m, n)
+      let b1 = 0, v1 = 0; const lo = Math.max(1, Math.floor(40 / (sr / 2 / bins)));
+      for (let b = lo; b < bins / 2; b++) if (this.fd[b] > v1) { v1 = this.fd[b]; b1 = b; }
+      let b2 = 0, v2 = 0; for (let b = lo; b < bins / 2; b++) { if (Math.abs(b - b1) < 6) continue; if (this.fd[b] > v2) { v2 = this.fd[b]; b2 = b; } }
+      if (v1 > 40) {
+        const mm = Math.max(1, Math.min(9, 1 + Math.round(Math.log2(hz(b1) / 55)))); let nn = Math.max(1, Math.min(9, 1 + Math.round(Math.log2(Math.max(hz(b2), 56) / 55))));
+        if (nn === mm) nn = mm % 9 + 1; this.tm = mm; this.tn = nn;
+      }
+      if (this.frame % 30 === 0) { this.m = this.tm; this.n = this.tn; }
+    }
+    drawSand(ctx, W, H, venom) {
+      const a = this.amp; const m = this.m, n = this.n; const PI = Math.PI;
+      // 石板 + 拖尾
+      ctx.fillStyle = venom ? 'rgba(8,7,12,0.32)' : 'rgba(30,26,20,0.3)'; ctx.fillRect(0, 0, W, H);
+      const k = 0.00045 * (0.5 + a * 3), jit = 0.0009 + a * 0.008;
+      const px = this.px, py = this.py, pv = this.pv;
+      for (let i = 0; i < this.N; i++) {
+        let x = px[i], y = py[i];
+        const cnx = Math.cos(n * PI * x), cmy = Math.cos(m * PI * y), cmx = Math.cos(m * PI * x), cny = Math.cos(n * PI * y);
+        const f = cnx * cmy - cmx * cny;
+        const fx = -n * PI * Math.sin(n * PI * x) * cmy + m * PI * Math.sin(m * PI * x) * cny;
+        const fy = -m * PI * cnx * Math.sin(m * PI * y) + n * PI * cmx * Math.sin(n * PI * y);
+        let dx = -f * fx * k + (Math.random() - 0.5) * jit, dy = -f * fy * k + (Math.random() - 0.5) * jit;
+        const sp = Math.sqrt(dx * dx + dy * dy); if (sp > 0.02) { dx *= 0.02 / sp; dy *= 0.02 / sp; }
+        x += dx; y += dy; if (x < 0) x = -x; if (x > 1) x = 2 - x; if (y < 0) y = -y; if (y > 1) y = 2 - y;
+        px[i] = x; py[i] = y; pv[i] = sp;
+      }
+      // 粒子: 金沙 (快=亮, 慢=沉)
+      const gold = venom ? [140, 255, 90] : [232, 193, 90], hot = venom ? [220, 160, 255] : [255, 246, 200];
+      const r = Math.max(1.2, Math.min(2.6, W / 420));
+      for (let i = 0; i < this.N; i++) {
+        const t = Math.min(1, pv[i] * 80); const c = [gold[0] + (hot[0] - gold[0]) * t, gold[1] + (hot[1] - gold[1]) * t, gold[2] + (hot[2] - gold[2]) * t];
+        ctx.fillStyle = 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + (0.55 + 0.45 * t) + ')';
+        ctx.fillRect(px[i] * W, py[i] * H, r, r);
+      }
+      // 振动时石板泛光
+      if (a > 0.01) { const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.6); g.addColorStop(0, 'rgba(' + gold.join(',') + ',' + Math.min(0.18, a * 0.5) + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+      ctx.fillStyle = venom ? 'rgba(140,255,90,0.55)' : 'rgba(232,193,90,0.55)'; ctx.font = (10 * (devicePixelRatio > 1 ? 2 : 1)) + 'px Menlo, monospace'; ctx.fillText('m' + this.m + ' n' + this.n + '  ' + (a * 100).toFixed(0), 8, H - 8);
+    }
+    drawWave(ctx, W, H, venom) {
+      ctx.clearRect(0, 0, W, H);
       const gold = venom ? '#8cff5a' : '#e8c15a', gold2 = venom ? 'rgba(140,255,90,0.18)' : 'rgba(232,193,90,0.22)';
-      // 频谱 (对数轴)
-      const bins = this.fd.length; const bars = 72;
-      ctx.fillStyle = gold2;
-      for (let i = 0; i < bars; i++) { const b0 = Math.floor(Math.pow(bins, i / bars)), b1 = Math.max(b0 + 1, Math.floor(Math.pow(bins, (i + 1) / bars))); let m = 0; for (let b = b0; b < b1 && b < bins; b++) m = Math.max(m, this.fd[b]); const h = (m / 255) * H * 0.9; ctx.fillRect((i / bars) * W, H - h, W / bars - 1, h); }
-      // 波形
+      const bins = this.fd.length; const bars = 72; ctx.fillStyle = gold2;
+      for (let i = 0; i < bars; i++) { const b0 = Math.floor(Math.pow(bins, i / bars)), b1 = Math.max(b0 + 1, Math.floor(Math.pow(bins, (i + 1) / bars))); let mx = 0; for (let b = b0; b < b1 && b < bins; b++) mx = Math.max(mx, this.fd[b]); const h = (mx / 255) * H * 0.9; ctx.fillRect((i / bars) * W, H - h, W / bars - 1, h); }
       ctx.lineWidth = 2 * (devicePixelRatio > 1 ? 2 : 1); ctx.strokeStyle = gold; ctx.shadowColor = gold; ctx.shadowBlur = 8; ctx.beginPath();
       const n = this.td.length; let start = 0; for (let i = 1; i < n / 2; i++) if (this.td[i - 1] < 128 && this.td[i] >= 128) { start = i; break; }
       for (let i = 0; i < n / 2; i++) { const x = (i / (n / 2)) * W, y = H / 2 - ((this.td[start + i] - 128) / 128) * H * 0.45; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
       ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    draw(venom) {
+      const cv = this.cv, ctx = cv.getContext('2d'); const dpr = devicePixelRatio > 1 ? 2 : 1; const W = cv.clientWidth * dpr, H = cv.clientHeight * dpr;
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; if (this.mode === 'sand') { ctx.fillStyle = '#1e1a14'; ctx.fillRect(0, 0, W, H); } }
+      this.frame++; this.analyse();
+      if (this.mode === 'sand') this.drawSand(ctx, W, H, venom); else this.drawWave(ctx, W, H, venom);
     }
   }
   UI.Scope = Scope;
