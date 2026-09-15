@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>石髓 SHISUI · 大理石 × 毒液 弦管合成器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="mode-shape">
+
+<!-- ===== SVG 定义: 液态金属渐变 + 大理石 / 金脉 滤镜 ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="goldStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset="0.45" stop-color="#e8c15a"/><stop offset="0.7" stop-color="#b8860b"/><stop offset="1" stop-color="#fff0a0"/>
+    </linearGradient>
+    <linearGradient id="goldRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff6c8"/><stop offset="0.35" stop-color="#d4a83a"/><stop offset="0.55" stop-color="#7a5a08"/><stop offset="0.8" stop-color="#f2d372"/><stop offset="1" stop-color="#a67c00"/>
+    </linearGradient>
+    <radialGradient id="chrome" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#e4e4e4"/><stop offset="0.6" stop-color="#8f8f8f"/><stop offset="0.82" stop-color="#4f4f4f"/><stop offset="1" stop-color="#cfcfcf"/>
+    </radialGradient>
+    <radialGradient id="chromeHot" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#fff2c8"/><stop offset="0.6" stop-color="#a89a70"/><stop offset="0.82" stop-color="#5a4f30"/><stop offset="1" stop-color="#e8dcb0"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="chromeV" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#f4f0ff"/><stop offset="0.3" stop-color="#8f88a8"/><stop offset="0.6" stop-color="#2d2a3a"/><stop offset="0.85" stop-color="#0a0910"/><stop offset="1" stop-color="#6c5f8f"/>
+    </radialGradient>
+    <radialGradient id="chromeVHot" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.3" stop-color="#b6ffa0"/><stop offset="0.6" stop-color="#2e4a26"/><stop offset="0.85" stop-color="#0a0910"/><stop offset="1" stop-color="#8cff5a"/>
+    </radialGradient>
+    <linearGradient id="venomRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dfffc8"/><stop offset="0.35" stop-color="#3fbd2b"/><stop offset="0.55" stop-color="#5a1a99"/><stop offset="0.8" stop-color="#c77dff"/><stop offset="1" stop-color="#1f6b17"/>
+    </linearGradient>
+    <linearGradient id="venomStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dfffc8"/><stop offset="0.5" stop-color="#8cff5a"/><stop offset="1" stop-color="#c77dff"/>
+    </linearGradient>
+
+    <!-- 浅色大理石 -->
+    <filter id="marbleLight" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <!-- 噪声等值线 = 大理石纹: 只在噪声值 ≈ 0.5 的一圈染深 -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.0055" numOctaves="4" seed="7" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 0 1" result="g"/>
+      <feComponentTransfer in="g" result="veins">
+        <feFuncR type="table" tableValues="0.98 0.98 0.97 0.97 0.96 0.96 0.95 0.94 0.92 0.86 0.62 0.86 0.92 0.94 0.95 0.96 0.96 0.97 0.97 0.98 0.98"/>
+        <feFuncG type="table" tableValues="0.96 0.96 0.95 0.95 0.94 0.94 0.93 0.92 0.90 0.83 0.58 0.83 0.90 0.92 0.93 0.94 0.94 0.95 0.95 0.96 0.96"/>
+        <feFuncB type="table" tableValues="0.92 0.92 0.91 0.91 0.90 0.90 0.89 0.87 0.84 0.77 0.52 0.77 0.84 0.87 0.89 0.90 0.90 0.91 0.91 0.92 0.92"/>
+      </feComponentTransfer>
+      <feTurbulence type="fractalNoise" baseFrequency="0.0075 0.011" numOctaves="3" seed="19" result="t2"/>
+      <feColorMatrix in="t2" type="matrix" values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 0 1" result="g2"/>
+      <feComponentTransfer in="g2" result="veins2">
+        <feFuncR type="table" tableValues="1 1 1 1 1 1 1 1 1 0.96 0.80 0.96 1 1 1 1 1 1 1 1 1"/>
+        <feFuncG type="table" tableValues="1 1 1 1 1 1 1 1 1 0.95 0.78 0.95 1 1 1 1 1 1 1 1 1"/>
+        <feFuncB type="table" tableValues="1 1 1 1 1 1 1 1 1 0.93 0.74 0.93 1 1 1 1 1 1 1 1 1"/>
+      </feComponentTransfer>
+      <feTurbulence type="fractalNoise" baseFrequency="0.0012 0.0009" numOctaves="2" seed="3" result="t3"/>
+      <feColorMatrix in="t3" type="matrix" values="0.25 0.25 0.25 0 0.62  0.25 0.25 0.25 0 0.60  0.25 0.25 0.25 0 0.55  0 0 0 0 1" result="tone"/>
+      <feBlend in="veins" in2="veins2" mode="multiply" result="v12"/>
+      <feBlend in="v12" in2="tone" mode="multiply" result="m"/>
+      <feColorMatrix in="m" type="matrix" values="1.3 0 0 0 -0.04  0 1.3 0 0 -0.04  0 0 1.3 0 -0.05  0 0 0 1 0"/>
+    </filter>
+    <!-- 黑曜石 (毒液) -->
+    <filter id="marbleDark" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.0055" numOctaves="4" seed="11" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 0 1" result="g"/>
+      <feComponentTransfer in="g" result="veins">
+        <feFuncR type="table" tableValues="0.05 0.05 0.05 0.06 0.06 0.07 0.08 0.09 0.11 0.16 0.30 0.16 0.11 0.09 0.08 0.07 0.06 0.06 0.05 0.05 0.05"/>
+        <feFuncG type="table" tableValues="0.05 0.05 0.05 0.05 0.06 0.06 0.07 0.08 0.10 0.15 0.34 0.15 0.10 0.08 0.07 0.06 0.06 0.05 0.05 0.05 0.05"/>
+        <feFuncB type="table" tableValues="0.08 0.08 0.08 0.09 0.10 0.11 0.12 0.14 0.17 0.24 0.42 0.24 0.17 0.14 0.12 0.11 0.10 0.09 0.08 0.08 0.08"/>
+      </feComponentTransfer>
+      <feTurbulence type="fractalNoise" baseFrequency="0.0012 0.0009" numOctaves="2" seed="5" result="t3"/>
+      <feColorMatrix in="t3" type="matrix" values="0.3 0.3 0.3 0 0.75  0.3 0.3 0.3 0 0.7  0.3 0.3 0.3 0 0.85  0 0 0 0 1" result="tone"/>
+      <feBlend in="veins" in2="tone" mode="multiply"/>
+    </filter>
+    <!-- 金脉: 只保留噪声中很窄的一段值 → 细而亮的金线 -->
+    <filter id="goldVeins" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0028 0.0045" numOctaves="4" seed="21" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.33 0.33 0.33 0 0" result="a"/>
+      <feComponentTransfer in="a" result="band">
+        <feFuncA type="table" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 1 0.25 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#f6d77a" result="gold"/>
+      <feComposite in="gold" in2="band" operator="in"/>
+    </filter>
+    <filter id="venomVeins" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0028 0.0045" numOctaves="4" seed="21" result="t"/>
+      <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.33 0.33 0.33 0 0" result="a"/>
+      <feComponentTransfer in="a" result="band">
+        <feFuncA type="table" tableValues="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 1 0.25 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#9cff6a" result="c"/>
+      <feComposite in="c" in2="band" operator="in"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="bg">
+  <svg class="marble-light" preserveAspectRatio="none"><rect width="100%" height="100%" fill="#efe9db" filter="url(#marbleLight)"/></svg>
+  <svg class="marble-dark" preserveAspectRatio="none"><rect width="100%" height="100%" fill="#0f0e13" filter="url(#marbleDark)"/></svg>
+</div>
+<svg class="veins veins-light" preserveAspectRatio="none"><rect width="100%" height="100%" filter="url(#goldVeins)"/></svg>
+<svg class="veins-glow veins-light" preserveAspectRatio="none"><rect width="100%" height="100%" filter="url(#goldVeins)"/></svg>
+<svg class="veins veins-dark hidden" preserveAspectRatio="none"><rect width="100%" height="100%" filter="url(#venomVeins)"/></svg>
+<svg class="veins-glow veins-dark hidden" preserveAspectRatio="none"><rect width="100%" height="100%" filter="url(#venomVeins)"/></svg>
+<div class="light-burst a"></div><div class="light-burst b"></div><div class="light-burst c"></div>
+
+<!-- ===== 启动幕 ===== -->
+<div id="splash">
+  <h1>石髓</h1>
+  <h2>SHISUI · MARBLE × VENOM · 弦管合成器</h2>
+  <p>古筝 · 二胡 · 竹笛 · 管子/唢呐 · 弦乐群 的物理建模内核，插电拾音、二极管与电子管放大链，以及由真随机、圆周率与碳-14 衰变驱动的随机接口。大理石里流淌的液态金属，光从金脉中迸出。</p>
+  <button id="enter" class="btn gold">唤 醒 石 髓</button>
+  <div class="err" id="splash-err"></div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div id="app">
+  <header class="topbar">
+    <div class="logo"><span class="l1">石髓</span><span class="l2">SHISUI · MARBLE VENOM SYNTH</span></div>
+    <div class="preset-nav">
+      <button class="btn sm" id="preset-prev" title="上一个预设">◀</button>
+      <button class="btn preset-name" id="preset-name" title="打开预设列表"><small>预设 PRESET</small><span id="preset-title">—</span></button>
+      <button class="btn sm" id="preset-next" title="下一个预设">▶</button>
+      <div id="preset-list" class="panel"></div>
+    </div>
+    <button class="btn" id="btn-search" title="查找任何参数 / 预设 / 动作 (Ctrl/⌘ + K)">⌘K 查找</button>
+    <div class="mode-tabs" title="界面层级：玩 = 只看宏与随机；塑 = 加乐器/放大/效果；深 = 全部（调制矩阵、代码）">
+      <button class="mode-tab" data-mode="play">玩</button>
+      <button class="mode-tab on" data-mode="shape">塑</button>
+      <button class="mode-tab" data-mode="deep">深</button>
+    </div>
+    <button class="btn gold" id="btn-surprise" title="用当前随机源随机化未锁定的参数（右键旋钮可锁定）">🎲 惊喜</button>
+    <button class="btn sm" id="btn-undo" title="撤销 (Ctrl/⌘+Z)">↶</button>
+    <button class="btn sm" id="btn-redo" title="重做 (Ctrl/⌘+Shift+Z)">↷</button>
+    <button class="btn sm" id="btn-ab" title="A/B 对比：在两个音色槽之间切换">A/B</button>
+    <div class="spacer"></div>
+    <div class="tb-right">
+      <div class="venom-switch" id="btn-venom" title="毒液模式：整台机器变成液态黑曜石，反馈FM/折叠/碎裂/流淌一起上"><div class="vs-track"><div class="vs-knob"></div></div><span class="vs-label">毒液 VENOM</span></div>
+      <div class="midi"><span class="dot" id="midi-dot"></span><span id="midi-name">MIDI</span></div>
+      <canvas id="vu" title="输出电平"></canvas>
+      <span class="cpu" id="cpu"></span>
+      <button class="btn sm" id="btn-help" title="帮助">?</button>
+      <button class="btn sm danger" id="btn-panic" title="全部静音 (Esc 两次)">✕</button>
+    </div>
+  </header>
+
+  <main id="panels"></main>
+
+  <footer class="keys-wrap">
+    <div class="keys-top">
+      <button class="btn sm" id="oct-down" title="降八度 (Z)">八度 −</button>
+      <span id="oct-label" class="small">C3</span>
+      <button class="btn sm" id="oct-up" title="升八度 (X)">八度 +</button>
+      <span class="kbd-hint"><kbd>A</kbd>…<kbd>;</kbd> 白键 · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd> 黑键 · <kbd>Z</kbd>/<kbd>X</kbd> 八度 · <kbd>空格</kbd> 刷新接口 · 点琴键下方更响</span>
+      <div id="info-bar"></div>
+    </div>
+    <div id="keyboard"></div>
+  </footer>
+</div>
+
+<div class="arm-banner" id="arm-banner"></div>
+<div id="palette"></div>
+<div id="help">
+  <div class="help-box">
+    <button class="btn sm help-close" id="help-close">关闭</button>
+    <h2>石髓 · 使用指南</h2>
+    <p>一台把中国弦管乐器"插上电"的合成器。左手是石头与真空管，右手是π与放射性衰变。</p>
+    <h3>三层界面</h3>
+    <ul>
+      <li><b>玩</b>：只看四个宏旋钮、XY 板、随机接口和键盘。先玩，不用懂。</li>
+      <li><b>塑</b>：加上乐器建模、插电/毒液、放大器、效果与琶音。</li>
+      <li><b>深</b>：调制矩阵、LFO、代码台、音色 JSON。全部可见。</li>
+    </ul>
+    <h3>旋钮</h3>
+    <ul>
+      <li>上下拖动或滚轮调节；<kbd>Shift</kbd> 微调；双击复位；右键 🔒 锁定（"惊喜"随机化会跳过它）。</li>
+      <li>旋钮外圈的彩色弧线与光点 = 当前被调制的实际值。</li>
+      <li>找不到？<kbd>Ctrl/⌘</kbd>+<kbd>K</kbd> 输入中文/英文名，回车直接跳过去并闪一下。</li>
+    </ul>
+    <h3>随机接口 R1–R4</h3>
+    <ul>
+      <li>四个"接口"各输出一个 0..1 的数，来源可选：<b>真随机</b>（crypto）、<b>圆周率</b>（即时计算的 π 数字流，每次取 4 位）、<b>碳-14</b>（泊松过程模拟的放射性衰变，半衰期 5730 年，样本会真的越来越少）。</li>
+      <li>按"刷新"或空格取新数；"自动刷新"按频率取；碳-14 源下，每一次衰变事件会轮流刷新一个接口。</li>
+      <li>点一个接口（或 LFO / 衰变脉冲 / XY / 宏 芯片），再点任意旋钮 → 完成一条调制接线；在"深"模式的矩阵里改深浅或删除。</li>
+      <li>"衰变触发"让每次衰变按概率弹出一个五声音阶的音；"盖革咔嗒"让你听见它。</li>
+    </ul>
+    <h3>插电 / 放大链</h3>
+    <ul>
+      <li>乐器 → <b>拾音器</b>（非对称饱和 + 可叠加振荡器层与次低音）→ 滤波 → <b>二极管削波</b>（Shockley 曲线，锗/硅不对称）→ <b>电子管</b>（三极管传输曲线、栅偏压、电源下垂、交越失真、输出变压器）→ 箱体 → 合唱 → 乒乓延迟 → 石厅混响 → 压缩。</li>
+      <li><b>毒液</b>：反馈 FM、波折叠、采样碎裂、液态漂移，配黑曜石界面。宏 4 默认就是它。</li>
+    </ul>
+    <h3>代码台</h3>
+    <p>在"深"模式底部。<code>note('C4')</code>、<code>every(0.25, fn)</code>、<code>seq('C4 E4 . G4')</code>、<code>set('flt.cutoff', 800)</code>、<code>pi(i)</code>、<code>c14()</code>、<code>onDecay(fn)</code>、<code>mod('R1','gz.pos',0.5)</code>…点 API 查看全部。<kbd>Ctrl/⌘</kbd>+<kbd>Enter</kbd> 运行。</p>
+    <h3>快捷键</h3>
+    <p><kbd>A</kbd>–<kbd>;</kbd> 弹奏 · <kbd>Z</kbd>/<kbd>X</kbd> 八度 · <kbd>空格</kbd> 刷新接口 · <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> 撤销 · <kbd>Esc</kbd> 关闭/取消指派，连按两次全部静音 · MIDI 键盘即插即用（调制轮 = WHEEL 源，CC74 = 截止）。</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="js/dsp.worklet.js"></script>
+<script src="js/params.js"></script>
+<script src="js/random.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/code.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
