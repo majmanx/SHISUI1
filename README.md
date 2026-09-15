@@ -7,7 +7,8 @@
 
 无需构建、无需安装。
 
-- 直接双击 `index.html`（Chrome / Edge / Firefox / Safari 最新版），点"唤醒石髓"。
+- **在线**：<https://majmanx.github.io/SHISUI1/>（GitHub Pages），打开后点"唤醒石髓 AWAKEN"。
+- **本地**：下载 ZIP 解压，双击 `index.html`（Chrome / Edge / Firefox / Safari 最新版）。
 - 或本地起个静态服务：`python3 -m http.server 8000` 然后打开 `http://localhost:8000/`。
 
 ## 上手
@@ -23,11 +24,10 @@
 ## 获取代码
 
 ```
-git clone https://github.com/majmanx/Claude1.git
-cd Claude1
-git checkout claude/chinese-instrument-synth-y7nb27
+git clone https://github.com/majmanx/SHISUI1.git
+cd SHISUI1
 ```
-或在 GitHub 页面切到该分支后 Code → Download ZIP，解压后双击 `index.html`。
+或在 GitHub 仓库页面 Code → Download ZIP，解压得到 `SHISUI1-main` 文件夹，双击里面的 `index.html`。
 
 ## 测试
 
