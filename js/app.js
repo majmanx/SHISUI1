@@ -146,8 +146,12 @@
     /* --- 示波器 --- */
     const ps = UI.panel('p-scope', '石窗', 'SCOPE · 共振沙图 / 波形', 1, 'col-4');
     const sw = UI.el('div', 'scope-wrap'); const cv = document.createElement('canvas'); sw.appendChild(cv);
-    const sm = UI.el('div', 'scope-modes'); const bSand = UI.btn(UI.bi('沙', 'Sand'), 'on', () => { scope.mode = 'sand'; bSand.classList.add('on'); bWave.classList.remove('on'); }, '克拉尼共振沙图：声音的频率决定石板上的沙子聚成什么图形 · Chladni sand figure'); const bWave = UI.btn(UI.bi('波', 'Wave'), '', () => { scope.mode = 'wave'; bWave.classList.add('on'); bSand.classList.remove('on'); }, '波形 + 频谱 · Waveform');
-    sm.appendChild(bSand); sm.appendChild(bWave); sw.appendChild(sm); ps.body.appendChild(sw);
+    const sm = UI.el('div', 'scope-modes'); const modeBtns = [];
+    const pick = (mode) => { scope.mode = mode; modeBtns.forEach((b) => b.classList.toggle('on', b.dataset.mode === mode)); store.set('shisui.scope', mode); };
+    for (const [mode, zh, en, tip] of [['sand', '沙', 'Sand', '克拉尼共振沙图：主峰频率按 Chladni 定律 f∝(m+2n)² 选振型，峰谷浮雕 + 金沙沿节线聚集 · Chladni sand figure'], ['harm', '谐', 'Harm', '谐波金字塔：基频的 1–12 次分音逐层叠加（傅里叶级数） · Harmonic pyramid'], ['wave', '波', 'Wave', '波形 + 频谱 · Waveform']]) {
+      const b = UI.btn(UI.bi(zh, en), '', () => pick(mode), tip); b.dataset.mode = mode; modeBtns.push(b); sm.appendChild(b);
+    }
+    sw.appendChild(sm); ps.body.appendChild(sw); setTimeout(() => pick(store.get('shisui.scope', 'sand')), 0);
     ps.body.appendChild(UI.row([K('master.vol'), K('comp.amount'), K('flt.cutoff'), K('rev.mix')]));
     arpChip = UI.el('div', 'small', '');
     const ga = UI.group('琶音 · 走带', [K('bpm'), K('arp.mode'), K('arp.rate'), K('arp.oct'), K('arp.gate')], 'lvl2-inline');
