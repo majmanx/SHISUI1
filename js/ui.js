@@ -23,12 +23,15 @@
       const r = (this.el = el('div', 'knob' + (this.opts.big ? ' big' : '')));
       r.dataset.param = spec.id; r.title = (spec.tip ? spec.tip + ' ' : '') + '(' + spec.en + ')  拖动/滚轮调节 · Shift 微调 · 双击复位 · 右键锁定';
       const svg = svgEl('svg', { viewBox: '0 0 100 100', class: 'knob-svg' });
+      svg.appendChild(svgEl('circle', { class: 'k-plate', cx: 50, cy: 50, r: 47 }));
+      svg.appendChild(svgEl('circle', { class: 'k-plate-shade', cx: 50, cy: 50, r: 47 }));
       svg.appendChild(svgEl('path', { class: 'k-track', d: arcPath(50, 50, 40, -135, 135) }));
       this.modArc = svgEl('path', { class: 'k-mod', d: '' }); svg.appendChild(this.modArc);
       this.arc = svgEl('path', { class: 'k-arc', d: '' }); svg.appendChild(this.arc);
       svg.appendChild(svgEl('circle', { class: 'k-rim', cx: 50, cy: 50, r: 33 }));
       svg.appendChild(svgEl('circle', { class: 'k-body', cx: 50, cy: 50, r: 29 }));
       svg.appendChild(svgEl('circle', { class: 'k-shade', cx: 50, cy: 50, r: 29 }));
+      svg.appendChild(svgEl('circle', { class: 'k-bevel', cx: 50, cy: 50, r: 27.5 }));
       svg.appendChild(svgEl('ellipse', { class: 'k-gloss', cx: 44, cy: 38, rx: 16, ry: 9 }));
       this.ptr = svgEl('line', { class: 'k-ptr', x1: 50, y1: 46, x2: 50, y2: 25 }); svg.appendChild(this.ptr);
       this.modDot = svgEl('circle', { class: 'k-moddot', cx: 50, cy: 5, r: 3.2, visibility: 'hidden' }); svg.appendChild(this.modDot);

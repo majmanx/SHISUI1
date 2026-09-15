@@ -370,10 +370,10 @@ body.venom .btn.gold .en, body.venom .mode-tab.on .en { color: #1f4d16; }
    ============================================================ */
 :root { --marble-surface: var(--marble-white-img, none); --marble-panel: var(--marble-cream-img, none); --marble-key-w: var(--marble-white-img, none); --marble-key-b: var(--marble-black-img, none); }
 body.venom { --marble-surface: var(--marble-black-img, none); --marble-panel: var(--marble-obsidian-img, none); --marble-key-w: var(--marble-black-img, none); --marble-key-b: var(--marble-obsidian-img, none); }
-body.marble-ready .panel { background-image: linear-gradient(160deg, rgba(255, 253, 247, 0.72), rgba(246, 241, 230, 0.64)), var(--marble-panel); background-size: auto, 256px; background-blend-mode: normal; }
-body.marble-ready.venom .panel { background-image: linear-gradient(160deg, rgba(18, 16, 26, 0.72), rgba(10, 9, 14, 0.7)), var(--marble-panel); }
-body.marble-ready .grp { background-image: linear-gradient(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.38)), var(--marble-surface); background-size: auto, 256px; }
-body.marble-ready.venom .grp { background-image: linear-gradient(rgba(20, 18, 28, 0.55), rgba(20, 18, 28, 0.5)), var(--marble-surface); }
+body.marble-ready .panel { background-image: linear-gradient(160deg, rgba(255, 253, 247, 0.86), rgba(246, 241, 230, 0.8)), var(--marble-panel); background-size: auto, 256px; background-blend-mode: normal; }
+body.marble-ready.venom .panel { background-image: linear-gradient(160deg, rgba(18, 16, 26, 0.84), rgba(10, 9, 14, 0.82)), var(--marble-panel); }
+body.marble-ready .grp { background-image: none; background-color: rgba(255, 255, 255, 0.5); }
+body.marble-ready.venom .grp { background-image: none; background-color: rgba(255, 255, 255, 0.045); }
 body.marble-ready .btn:not(.gold) { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(236, 231, 220, 0.4) 50%, rgba(255, 255, 255, 0.45)), var(--marble-surface); background-size: auto, 160px; border-color: rgba(120, 100, 60, 0.4); }
 body.marble-ready.venom .btn:not(.gold) { background-image: linear-gradient(180deg, rgba(90, 85, 110, 0.55), rgba(30, 28, 40, 0.5) 50%, rgba(60, 56, 75, 0.5)), var(--marble-surface); }
 body.marble-ready .toggle, body.marble-ready .chip, body.marble-ready .tile, body.marble-ready .sel select, body.marble-ready .code-ex, body.marble-ready .mode-tabs, body.marble-ready .venom-switch, body.marble-ready .lang-toggle, body.marble-ready .preset-name { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(238, 233, 222, 0.4)), var(--marble-surface); background-size: auto, 160px; }
@@ -528,3 +528,25 @@ body.venom .key.down::after, body.venom .key.lit::after { background: rgba(20, 1
 body.venom .acoustic-card { background: rgba(140, 255, 90, 0.08); border-color: rgba(140, 255, 90, 0.3); }
 .acoustic-card b { color: var(--gold-4); }
 body.venom .acoustic-card b { color: var(--gold-2); }
+
+/* ---------- 旋钮: 大理石石座 + 大理石本体 + 倒角 ---------- */
+.k-plate { fill: url(#marblePlate); stroke: rgba(120, 100, 60, 0.35); stroke-width: 0.8; }
+.k-plate-shade { fill: url(#plateShade); pointer-events: none; }
+.k-bevel { fill: none; stroke: url(#bevel); stroke-width: 2.4; pointer-events: none; }
+.k-body { fill: url(#marbleKnob); stroke: rgba(80, 60, 20, 0.45); stroke-width: 0.8; }
+.k-gloss { opacity: 0.28; }
+.k-shade { opacity: 0.9; }
+body.venom .k-plate { fill: url(#marblePlateDark); stroke: rgba(140, 255, 90, 0.25); }
+body.venom .k-body { fill: url(#marbleKnobDark); stroke: rgba(0, 0, 0, 0.7); }
+body.plain .k-body { fill: url(#marbleKnob) !important; }
+body.plain.venom .k-body { fill: url(#marbleKnobDark) !important; }
+body.plain .k-plate { fill: rgba(255, 255, 255, 0.55); }
+body.plain.venom .k-plate { fill: rgba(255, 255, 255, 0.06); }
+.knob:hover .k-plate { stroke: var(--gold-2); }
+/* 标签: 更宽、可换行、白色光晕 */
+.knob { width: calc(var(--size) + 34px); }
+.knob-label, .knob-en, .knob-val, .grp-title, .sel-label, .tg-label, .orb-name, .orb-val, .orb-src, .warm-side, .xy-labels { text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 7px rgba(255, 255, 255, 0.8); }
+body.venom .knob-label, body.venom .knob-en, body.venom .knob-val, body.venom .grp-title, body.venom .sel-label, body.venom .tg-label, body.venom .orb-name, body.venom .orb-val, body.venom .orb-src, body.venom .warm-side, body.venom .xy-labels { text-shadow: 0 0 3px rgba(0, 0, 0, 0.95), 0 0 7px rgba(0, 0, 0, 0.8); }
+.knob-en { white-space: normal; max-width: 92px; text-align: center; line-height: 1.15; }
+.knob-label { white-space: normal; max-width: 92px; text-align: center; line-height: 1.15; }
+body.lang-en .knob-en { max-width: 96px; }
