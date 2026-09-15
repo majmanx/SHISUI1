@@ -344,3 +344,16 @@ body.venom .slot-ctl input[type=range] { accent-color: var(--gold-2); }
 #preset-list .pi .del { border: 0; background: transparent; cursor: pointer; color: var(--ink-3); }
 #preset-list .pi .del:hover { color: var(--danger); }
 #preset-list .sec { font-size: 10px; letter-spacing: 0.2em; color: var(--ink-3); padding: 6px 10px 2px; }
+
+/* ---------- 双语 ---------- */
+.en { font-family: "Cinzel", "ZCOOL XiaoWei", Georgia, serif; font-size: 0.72em; color: var(--ink-3); letter-spacing: 0.06em; margin-left: 3px; font-weight: 400; white-space: nowrap; }
+.btn.gold .en, .tile.on .en, .chip.on .en, .mode-tab.on .en { color: #5a4408; }
+body.venom .btn.gold .en, body.venom .mode-tab.on .en { color: #1f4d16; }
+.knob-en { font-family: "Cinzel", Georgia, serif; font-size: 8.5px; color: var(--ink-3); letter-spacing: 0.04em; white-space: nowrap; line-height: 1.15; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.knob.big .knob-en { font-size: 10px; }
+.mode-tab .en { display: block; font-size: 8px; letter-spacing: 0.15em; line-height: 1; margin: -2px 0 2px; text-align: center; }
+.sel-label .en, .tg-label .en, .grp-title .en { font-size: 0.78em; }
+.grp-title .en { font-family: "Cinzel", Georgia, serif; letter-spacing: 0.15em; }
+.knob-val { margin-top: 1px; }
+
+@media (max-width: 1640px) { .logo .l2 { display: none; } .preset-name { min-width: 150px; } }

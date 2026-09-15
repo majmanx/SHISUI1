@@ -82,7 +82,7 @@
   }
 
   /* ================= 控件工厂 ================= */
-  function info(spec) { const bar = $('#info-bar'); if (!spec) { bar.innerHTML = ''; return; } bar.innerHTML = '<b>' + spec.label + '</b> ' + (spec.tip || '') + ' <span class="small">' + spec.en + (spec.id ? ' · ' + spec.id : '') + '</span>'; }
+  function info(spec) { const bar = $('#info-bar'); if (!spec) { bar.innerHTML = ''; return; } bar.innerHTML = '<b>' + spec.label + ' · ' + spec.en + '</b> ' + (spec.tip || '') + ' <span class="small">' + (spec.id || '') + '</span>'; }
   function makeControl(id, opts) {
     opts = opts || {}; const p = S.PARAM_MAP[id]; if (!p) return null;
     if (controls[id] && controls[id].el.parentNode) controls[id].el.parentNode.removeChild(controls[id].el);
@@ -103,7 +103,7 @@
     /* --- 宏 + XY --- */
     const pm = UI.panel('p-macro', '宏', 'MACROS · 先转这四个', 1, 'col-4');
     pm.body.appendChild(UI.row([K('mac.1', true), K('mac.2', true), K('mac.3', true), K('mac.4', true)], 'macros'));
-    const xyWrap = UI.el('div'); const xyEl = UI.el('div', 'xy'); xyWrap.appendChild(xyEl); xyWrap.appendChild(UI.el('div', 'xy-labels', '<span>← X 源 →</span><span>↑ Y 源 (点接口再点旋钮可接线)</span>'));
+    const xyWrap = UI.el('div'); const xyEl = UI.el('div', 'xy'); xyWrap.appendChild(xyEl); xyWrap.appendChild(UI.el('div', 'xy-labels', '<span>← X 源 · X source →</span><span>↑ Y 源 · Y source</span>'));
     pm.body.appendChild(xyWrap); main.appendChild(pm);
     xyPad = new UI.XYPad(xyEl, (x, y) => { state.xy = [x, y]; });
     xyEl.title = 'XY 板：X / Y 是两个调制源。在"深"模式的调制矩阵或用芯片把它们接到任何旋钮。';
@@ -113,7 +113,7 @@
     ps.body.appendChild(UI.row([K('master.vol'), K('comp.amount'), K('flt.cutoff'), K('rev.mix')]));
     arpChip = UI.el('div', 'small', '');
     const ga = UI.group('琶音 · 走带', [K('bpm'), K('arp.mode'), K('arp.rate'), K('arp.oct'), K('arp.gate')], 'lvl2-inline');
-    ga.appendChild(UI.row([UI.btn('■ 停止全部', 'sm', () => { if (sched) { sched.clearAll(); sched.held = []; } engine.allOff(); }, '停止代码任务与琶音'), arpChip]));
+    ga.appendChild(UI.row([UI.btn(UI.bi('■ 停止全部', 'Stop all'), 'sm', () => { if (sched) { sched.clearAll(); sched.held = []; } engine.allOff(); }, '停止代码任务与琶音'), arpChip]));
     ps.body.appendChild(ga);
     main.appendChild(ps); scope = new UI.Scope(cv, engine.analyser);
     /* --- 随机接口 --- */
@@ -125,8 +125,8 @@
     for (let i = 0; i < 4; i++) { const o = UI.el('div', 'orb', '<div class="orb-ball"><div class="orb-fill"></div></div><div class="orb-name">R' + (i + 1) + '</div><div class="orb-val">0.500</div><div class="orb-src">—</div>'); o.title = '接口 R' + (i + 1) + '：点我，再点任意旋钮 → 接线调制'; o.addEventListener('click', () => arm('R' + (i + 1))); orbs.appendChild(o); orbEls.push(o); }
     pr.body.appendChild(orbs);
     rndViewEl = UI.el('div', 'rnd-view'); pr.body.appendChild(rndViewEl);
-    const rb = UI.btn('⟳ 刷新 (空格)', 'gold', () => { bus.refresh(); pulseOrbs(); }, '从当前随机源取 4 个新数给 R1–R4');
-    pr.body.appendChild(UI.row([rb, K('rnd.rate'), K('rnd.slew'), K('rnd.wild'), UI.btn('🎲 惊喜', '', surprise, '随机化整套音色（跳过锁定的旋钮）')]));
+    const rb = UI.btn(UI.bi('⟳ 刷新', 'Refresh · Space'), 'gold', () => { bus.refresh(); pulseOrbs(); }, '从当前随机源取 4 个新数给 R1–R4');
+    pr.body.appendChild(UI.row([rb, K('rnd.rate'), K('rnd.slew'), K('rnd.wild'), UI.btn(UI.bi('🎲 惊喜', 'Surprise'), '', surprise, '随机化整套音色（跳过锁定的旋钮） Randomize the whole patch (locked knobs are skipped)')]));
     const g14 = UI.group('碳-14 衰变', [K('c14.atoms'), K('c14.speed'), K('c14.prob'), K('c14.scale'), K('c14.click')], 'lvl2-inline');
     const gg = UI.el('div', 'geiger'); geigerLed = UI.el('div', 'led'); geigerCv = document.createElement('canvas'); c14StatsEl = UI.el('div', 'stat small');
     gg.appendChild(geigerLed); gg.appendChild(geigerCv); g14.appendChild(gg); g14.appendChild(c14StatsEl); pr.body.appendChild(g14);
@@ -163,35 +163,35 @@
     const wrap = UI.el('div'); wrap.style.display = 'grid'; wrap.style.gridTemplateColumns = 'minmax(0,3fr) minmax(0,2fr)'; wrap.style.gap = '12px';
     const codeEl = UI.el('div'); const jsonEl = UI.el('div');
     patchTA = document.createElement('textarea'); patchTA.className = 'patch-json'; patchTA.spellcheck = false;
-    jsonEl.appendChild(UI.el('div', 'grp-title', '音色 JSON（可编辑后应用 / 复制分享）')); jsonEl.appendChild(patchTA);
-    jsonEl.appendChild(UI.row([UI.btn('应用 JSON', 'gold', applyPatchJSON), UI.btn('复制', '', () => { patchTA.select(); document.execCommand('copy'); toast('已复制音色 JSON'); }), UI.btn('刷新显示', '', renderPatchJSON)]));
+    jsonEl.appendChild(UI.el('div', 'grp-title', UI.bi('音色 JSON（可编辑后应用 / 复制分享）', 'Patch JSON · edit & apply / share'))); jsonEl.appendChild(patchTA);
+    jsonEl.appendChild(UI.row([UI.btn(UI.bi('应用 JSON', 'Apply'), 'gold', applyPatchJSON), UI.btn(UI.bi('复制', 'Copy'), '', () => { patchTA.select(); document.execCommand('copy'); toast('已复制音色 JSON · Copied'); }), UI.btn(UI.bi('刷新显示', 'Reload view'), '', renderPatchJSON)]));
     wrap.appendChild(codeEl); wrap.appendChild(jsonEl); pc.body.appendChild(wrap); main.appendChild(pc);
     codeConsole = new S.CodeConsole(codeEl, codeAPI());
     /* --- 录音 · 声音槽 --- */
     const prc = UI.panel('p-rec', '录音 · 声音槽', 'RECORD · 8 SLOTS · 叠录混合', 1, 'col-12');
     const bar = UI.el('div', 'rec-bar');
-    recBtn = UI.el('button', 'btn rec-btn', '<span class="rec-led"></span><span>● 录音</span>'); recBtn.title = '录下你听到的一切（含效果与正在播放的槽），停止后进入下一个空槽。快捷键 Shift+R'; recBtn.addEventListener('click', toggleRecord);
+    recBtn = UI.el('button', 'btn rec-btn', '<span class="rec-led"></span><span>● 录音 <span class="en">Record</span></span>'); recBtn.title = '录下你听到的一切（含效果与正在播放的槽），停止后进入下一个空槽。快捷键 Shift+R'; recBtn.addEventListener('click', toggleRecord);
     recTimeEl = UI.el('span', 'rec-time', '00:00.0');
     const fileIn = document.createElement('input'); fileIn.type = 'file'; fileIn.accept = 'audio/*'; fileIn.multiple = true; fileIn.style.display = 'none';
     fileIn.addEventListener('change', async () => { for (const f of Array.from(fileIn.files)) { try { const buf = await engine.decodeFile(f); putSlot(nextFreeSlot(), buf, f.name.replace(/\.[^.]+$/, '')); } catch (e) { toast('无法解码 ' + f.name); } } fileIn.value = ''; });
-    const slotFxT = UI.el('button', 'toggle', '<span class="tg-led"></span><span class="tg-label">槽过效果链</span>'); slotFxT.title = '打开：槽的声音经过滤波/放大/效果；关闭：直入总线（干净回放）'; slotFxT.addEventListener('click', () => { state.slotFx = !state.slotFx; slotFxT.classList.toggle('on', state.slotFx); });
+    const slotFxT = UI.el('button', 'toggle', '<span class="tg-led"></span><span class="tg-label">槽过效果链 <span class="en">Slots thru FX</span></span>'); slotFxT.title = '打开：槽的声音经过滤波/放大/效果；关闭：直入总线（干净回放）'; slotFxT.addEventListener('click', () => { state.slotFx = !state.slotFx; slotFxT.classList.toggle('on', state.slotFx); });
     bar.appendChild(recBtn); bar.appendChild(recTimeEl);
-    bar.appendChild(UI.btn('⬇ 导出上次录音', 'gold', () => { const sl = state.slots[state.lastRecSlot]; if (sl && sl.buffer) exportSlot(state.lastRecSlot); else toast('还没有录音'); }, '把最近一次录音导出为 WAV'));
-    bar.appendChild(UI.btn('📂 导入音频到槽', '', () => fileIn.click(), '把 wav/mp3/ogg 放进一个槽，用来混合创作'));
-    bar.appendChild(slotFxT); bar.appendChild(UI.btn('■ 停止所有槽', '', () => engine.stopAllSlots()));
-    bar.appendChild(UI.el('span', 'small', '提示：让几个槽循环播放，再弹奏并录音 = 叠录出新的音色素材。槽只在内存里，想留就导出 WAV。'));
+    bar.appendChild(UI.btn(UI.bi('⬇ 导出上次录音', 'Export last take'), 'gold', () => { const sl = state.slots[state.lastRecSlot]; if (sl && sl.buffer) exportSlot(state.lastRecSlot); else toast('还没有录音'); }, '把最近一次录音导出为 WAV'));
+    bar.appendChild(UI.btn(UI.bi('📂 导入音频到槽', 'Import audio'), '', () => fileIn.click(), '把 wav/mp3/ogg 放进一个槽，用来混合创作'));
+    bar.appendChild(slotFxT); bar.appendChild(UI.btn(UI.bi('■ 停止所有槽', 'Stop slots'), '', () => engine.stopAllSlots()));
+    bar.appendChild(UI.el('span', 'small', '提示：让几个槽循环播放，再弹奏并录音 = 叠录出新的音色素材。槽只在内存里，想留就导出 WAV。 Loop a few slots, play & record = overdub new material. Slots live in memory only; export WAV to keep.'));
     bar.appendChild(fileIn); prc.body.appendChild(bar);
     const grid = UI.el('div', 'slots'); state.slots = [];
     for (let i = 0; i < 8; i++) {
       const sl = { i, buffer: null, name: '', loop: false, gain: 0.8, rate: 1, voice: null, el: null, cv: null };
-      const el = UI.el('div', 'slot empty'); const head = UI.el('div', 'slot-head', '<span class="slot-name">槽 ' + (i + 1) + '</span><span class="slot-len">空</span>'); el.appendChild(head);
+      const el = UI.el('div', 'slot empty'); const head = UI.el('div', 'slot-head', '<span class="slot-name">槽 ' + (i + 1) + ' <span class="en">Slot</span></span><span class="slot-len">空 Empty</span>'); el.appendChild(head);
       const cv = document.createElement('canvas'); cv.title = '点击：录到这个槽'; cv.addEventListener('click', () => { state.recTarget = i; renderSlots(); toast('下一次录音进入槽 ' + (i + 1)); }); el.appendChild(cv);
       const ctl = UI.el('div', 'slot-ctl');
-      const play = UI.btn('▶', '', () => toggleSlot(i), '播放 / 停止'); const loop = UI.btn('循环', '', () => { sl.loop = !sl.loop; loop.classList.toggle('on', sl.loop); if (sl.voice) sl.voice.src.loop = sl.loop; }, '循环播放');
-      const exp = UI.btn('⬇', '', () => exportSlot(i), '导出 WAV'); const clr = UI.btn('✕', 'danger', () => { stopSlot(i); sl.buffer = null; sl.name = ''; renderSlots(); }, '清空');
+      const play = UI.btn('▶', '', () => toggleSlot(i), '播放 / 停止 Play / Stop'); const loop = UI.btn(UI.bi('循环', 'Loop'), '', () => { sl.loop = !sl.loop; loop.classList.toggle('on', sl.loop); if (sl.voice) sl.voice.src.loop = sl.loop; }, '循环播放');
+      const exp = UI.btn('⬇', '', () => exportSlot(i), '导出 WAV · Export WAV'); const clr = UI.btn('✕', 'danger', () => { stopSlot(i); sl.buffer = null; sl.name = ''; renderSlots(); }, '清空 Clear');
       ctl.appendChild(play); ctl.appendChild(loop); ctl.appendChild(exp); ctl.appendChild(clr);
-      const gl = UI.el('label', '', '音量'); const g = document.createElement('input'); g.type = 'range'; g.min = 0; g.max = 1.5; g.step = 0.01; g.value = sl.gain; g.addEventListener('input', () => { sl.gain = +g.value; if (sl.voice) sl.voice.gain.gain.setTargetAtTime(sl.gain, engine.ctx.currentTime, 0.01); }); gl.appendChild(g);
-      const rl = UI.el('label', '', '速度'); const r = document.createElement('input'); r.type = 'range'; r.min = 0.25; r.max = 2; r.step = 0.01; r.value = 1; r.title = '播放速度（连带变调）'; r.addEventListener('input', () => { sl.rate = +r.value; if (sl.voice) sl.voice.src.playbackRate.setTargetAtTime(sl.rate, engine.ctx.currentTime, 0.01); }); r.addEventListener('dblclick', () => { r.value = 1; sl.rate = 1; if (sl.voice) sl.voice.src.playbackRate.value = 1; }); rl.appendChild(r);
+      const gl = UI.el('label', '', '音量 <span class="en">Vol</span>'); const g = document.createElement('input'); g.type = 'range'; g.min = 0; g.max = 1.5; g.step = 0.01; g.value = sl.gain; g.addEventListener('input', () => { sl.gain = +g.value; if (sl.voice) sl.voice.gain.gain.setTargetAtTime(sl.gain, engine.ctx.currentTime, 0.01); }); gl.appendChild(g);
+      const rl = UI.el('label', '', '速度 <span class="en">Rate</span>'); const r = document.createElement('input'); r.type = 'range'; r.min = 0.25; r.max = 2; r.step = 0.01; r.value = 1; r.title = '播放速度（连带变调）'; r.addEventListener('input', () => { sl.rate = +r.value; if (sl.voice) sl.voice.src.playbackRate.setTargetAtTime(sl.rate, engine.ctx.currentTime, 0.01); }); r.addEventListener('dblclick', () => { r.value = 1; sl.rate = 1; if (sl.voice) sl.voice.src.playbackRate.value = 1; }); rl.appendChild(r);
       ctl.appendChild(gl); ctl.appendChild(rl); el.appendChild(ctl);
       sl.el = el; sl.cv = cv; sl.playBtn = play; state.slots.push(sl); grid.appendChild(el);
     }
@@ -201,8 +201,8 @@
   let recBtn, recTimeEl;
   const nextFreeSlot = () => { const f = state.slots.findIndex((s) => !s.buffer); return f >= 0 ? f : state.recTarget; };
   async function toggleRecord() {
-    if (!engine.recording) { engine.startRecording(); recBtn.classList.add('on'); recBtn.querySelector('span:last-child').textContent = '■ 停止'; state.recTarget = state.slots[state.recTarget] && !state.slots[state.recTarget].buffer ? state.recTarget : nextFreeSlot(); renderSlots(); toast('录音中 → 槽 ' + (state.recTarget + 1)); return; }
-    const buf = await engine.stopRecording(); recBtn.classList.remove('on'); recBtn.querySelector('span:last-child').textContent = '● 录音'; recTimeEl.textContent = '00:00.0';
+    if (!engine.recording) { engine.startRecording(); recBtn.classList.add('on'); recBtn.querySelector('span:last-child').innerHTML = '■ 停止 <span class="en">Stop</span>'; state.recTarget = state.slots[state.recTarget] && !state.slots[state.recTarget].buffer ? state.recTarget : nextFreeSlot(); renderSlots(); toast('录音中 Recording → 槽 Slot ' + (state.recTarget + 1)); return; }
+    const buf = await engine.stopRecording(); recBtn.classList.remove('on'); recBtn.querySelector('span:last-child').innerHTML = '● 录音 <span class="en">Record</span>'; recTimeEl.textContent = '00:00.0';
     if (!buf) { toast('录音太短'); return; }
     putSlot(state.recTarget, buf, '录音 ' + new Date().toLocaleTimeString()); state.lastRecSlot = state.recTarget; state.recTarget = nextFreeSlot(); renderSlots();
   }
@@ -213,10 +213,10 @@
   function renderSlots() {
     state.slots.forEach((sl, i) => {
       sl.el.classList.toggle('empty', !sl.buffer); sl.el.classList.toggle('target', i === state.recTarget); sl.el.classList.toggle('playing', !!(sl.voice && !sl.voice.done));
-      sl.el.querySelector('.slot-len').textContent = sl.buffer ? sl.buffer.duration.toFixed(1) + ' s' : '空'; sl.el.querySelector('.slot-name').textContent = sl.buffer ? (sl.name.length > 9 ? sl.name.slice(0, 9) + '…' : sl.name) : '槽 ' + (i + 1);
+      sl.el.querySelector('.slot-len').textContent = sl.buffer ? sl.buffer.duration.toFixed(1) + ' s' : '空 Empty'; sl.el.querySelector('.slot-name').innerHTML = sl.buffer ? (sl.name.length > 9 ? sl.name.slice(0, 9) + '…' : sl.name) : '槽 ' + (i + 1) + ' <span class="en">Slot</span>';
       sl.playBtn.textContent = sl.voice && !sl.voice.done ? '■' : '▶';
       const cv = sl.cv, ctx = cv.getContext('2d'); const W = cv.width = Math.max(60, cv.clientWidth || 120), H = cv.height = 36; ctx.clearRect(0, 0, W, H);
-      if (!sl.buffer) { ctx.fillStyle = 'rgba(232,193,90,0.35)'; ctx.font = '10px serif'; ctx.fillText(i === state.recTarget ? '● 下一次录音' : '空', 6, 22); return; }
+      if (!sl.buffer) { ctx.fillStyle = 'rgba(232,193,90,0.35)'; ctx.font = '10px serif'; ctx.fillText(i === state.recTarget ? '● 下一次录音 Next take' : '空 Empty', 6, 22); return; }
       const d = sl.buffer.getChannelData(0); const step = Math.max(1, Math.floor(d.length / W)); ctx.fillStyle = document.body.classList.contains('venom') ? '#8cff5a' : '#e8c15a';
       for (let x = 0; x < W; x++) { let mx = 0; const o = x * step; for (let k = 0; k < step; k += 4) mx = Math.max(mx, Math.abs(d[o + k] || 0)); const h = Math.max(1, mx * H); ctx.fillRect(x, (H - h) / 2, 1, h); }
     });
@@ -232,7 +232,7 @@
   }
   function renderModList() {
     if (!modListEl) return; modListEl.innerHTML = '';
-    if (!state.mods.length) { modListEl.appendChild(UI.el('div', 'mod-empty', '还没有接线。点一个源芯片（或随机接口 R1–R4），再点任意旋钮。')); return; }
+    if (!state.mods.length) { modListEl.appendChild(UI.el('div', 'mod-empty', '还没有接线。点一个源芯片（或随机接口 R1–R4），再点任意旋钮。 No routing yet: click a source chip (or a port R1–R4), then any knob.')); return; }
     state.mods.forEach((m, i) => {
       const p = S.PARAM_MAP[m.dst]; const srcName = (S.MOD_SOURCES.find((s) => s[0] === m.src) || [m.src, m.src])[1];
       const it = UI.el('div', 'mod-item'); it.innerHTML = '<span class="src">' + srcName + '</span><span class="dst">→ ' + (p ? p.label + ' <span class="small">' + p.id + '</span>' : m.dst) + '</span>';
@@ -240,7 +240,7 @@
       it.appendChild(r); const x = UI.el('button', 'x', '✕'); x.title = '删除'; x.addEventListener('click', () => removeMod(i)); it.appendChild(x); modListEl.appendChild(it);
     });
   }
-  function arm(src) { state.armed = src; document.body.classList.add('arming'); $('#arm-banner').textContent = '已选中源 ' + src + '：点任意旋钮完成接线（Esc 取消）'; document.querySelectorAll('.chip[data-src], .orb').forEach((e) => e.classList.toggle('armed', e.dataset.src === src || e.querySelector('.orb-name') && e.querySelector('.orb-name').textContent === src)); }
+  function arm(src) { state.armed = src; document.body.classList.add('arming'); $('#arm-banner').textContent = '已选中源 ' + src + '：点任意旋钮完成接线（Esc 取消） · Source armed: click any knob to route (Esc cancels)'; document.querySelectorAll('.chip[data-src], .orb').forEach((e) => e.classList.toggle('armed', e.dataset.src === src || e.querySelector('.orb-name') && e.querySelector('.orb-name').textContent === src)); }
   function disarm() { state.armed = null; document.body.classList.remove('arming'); document.querySelectorAll('.armed').forEach((e) => e.classList.remove('armed')); }
   function updateSrcChips() { for (const k in srcChipEls) srcChipEls[k].classList.toggle('on', k === real('rnd.source')); }
   function pulseOrbs(i) { orbEls.forEach((o, j) => { if (i == null || i === j) { o.classList.remove('pulse'); void o.offsetWidth; o.classList.add('pulse'); setTimeout(() => o.classList.remove('pulse'), 160); } }); }
@@ -422,7 +422,7 @@
     $('#splash').classList.add('hide'); $('#app').classList.add('on');
     requestAnimationFrame(loop);
     setTimeout(() => toast('欢迎。先转四个宏旋钮，按 Z X C V 弹奏，Shift+R 录音，空格刷新随机接口。'), 600);
-    setInterval(() => { if (sched && arpChip) arpChip.textContent = real('arp.mode') === 'off' ? '' : '琶音中 · 按住琴键 · ' + sched.held.length + ' 音'; }, 500);
+    setInterval(() => { if (sched && arpChip) arpChip.textContent = real('arp.mode') === 'off' ? '' : '琶音中 Arp · 按住琴键 hold keys · ' + sched.held.length; }, 500);
   }
   $('#enter').addEventListener('click', boot);
   root.SHISUI.app = { state, engine, bus, setParam, loadPreset, surprise, get sched() { return sched; } };

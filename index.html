@@ -114,7 +114,7 @@
   <h1>石髓</h1>
   <h2>SHISUI · MARBLE × VENOM · 弦管合成器</h2>
   <p>古筝 · 二胡 · 竹笛 · 管子/唢呐 · 弦乐群 的物理建模内核，插电拾音、二极管与电子管放大链，以及由真随机、圆周率与碳-14 衰变驱动的随机接口。大理石里流淌的液态金属，光从金脉中迸出。</p>
-  <button id="enter" class="btn gold">唤 醒 石 髓</button>
+  <button id="enter" class="btn gold">唤 醒 石 髓 <span class="en">AWAKEN</span></button>
   <div class="err" id="splash-err"></div>
 </div>
 
@@ -124,29 +124,29 @@
     <div class="logo"><span class="l1">石髓</span><span class="l2">SHISUI · MARBLE VENOM SYNTH</span></div>
     <div class="preset-nav">
       <button class="btn sm" id="preset-prev" title="上一个预设">◀</button>
-      <button class="btn preset-name" id="preset-name" title="打开预设列表"><small>预设 PRESET</small><span id="preset-title">—</span></button>
+      <button class="btn preset-name" id="preset-name" title="打开预设列表"><small>预设 · PRESET</small><span id="preset-title">—</span></button>
       <button class="btn sm" id="preset-next" title="下一个预设">▶</button>
       <div id="preset-list" class="panel"></div>
     </div>
-    <button class="btn" id="btn-search" title="查找任何参数 / 预设 / 动作 (Ctrl/⌘ + K)">⌘K 查找</button>
+    <button class="btn" id="btn-search" title="查找任何参数 / 预设 / 动作 · Find anything (Ctrl/⌘ + K)">⌘K 查找 <span class="en">Find</span></button>
     <div class="mode-tabs" title="界面层级：玩 = 只看宏与随机；塑 = 加乐器/放大/效果；深 = 全部（调制矩阵、代码）">
-      <button class="mode-tab" data-mode="play">玩</button>
-      <button class="mode-tab on" data-mode="shape">塑</button>
-      <button class="mode-tab" data-mode="deep">深</button>
+      <button class="mode-tab" data-mode="play">玩<span class="en">Play</span></button>
+      <button class="mode-tab on" data-mode="shape">塑<span class="en">Shape</span></button>
+      <button class="mode-tab" data-mode="deep">深<span class="en">Deep</span></button>
     </div>
-    <button class="btn gold" id="btn-surprise" title="用当前随机源随机化未锁定的参数（右键旋钮可锁定）">🎲 惊喜</button>
-    <button class="btn sm" id="btn-undo" title="撤销 (Ctrl/⌘+Z)">↶</button>
-    <button class="btn sm" id="btn-redo" title="重做 (Ctrl/⌘+Shift+Z)">↷</button>
+    <button class="btn gold" id="btn-surprise" title="用当前随机源随机化未锁定的参数（右键旋钮可锁定）">🎲 惊喜 <span class="en">Surprise</span></button>
+    <button class="btn sm" id="btn-undo" title="撤销 Undo (Ctrl/⌘+Z)">↶</button>
+    <button class="btn sm" id="btn-redo" title="重做 Redo (Ctrl/⌘+Shift+Z)">↷</button>
     <button class="btn sm" id="btn-ab" title="A/B 对比：在两个音色槽之间切换">A/B</button>
-    <button class="btn sm" id="btn-save" title="把当前音色存为我的预设（保存在浏览器本地）">💾 存预设</button>
+    <button class="btn sm" id="btn-save" title="把当前音色存为我的预设（保存在浏览器本地）">💾 存预设 <span class="en">Save</span></button>
     <div class="spacer"></div>
     <div class="tb-right">
       <div class="venom-switch" id="btn-venom" title="毒液模式：整台机器变成液态黑曜石，反馈FM/折叠/碎裂/流淌一起上"><div class="vs-track"><div class="vs-knob"></div></div><span class="vs-label">毒液 VENOM</span></div>
       <div class="midi"><span class="dot" id="midi-dot"></span><span id="midi-name">MIDI</span></div>
       <canvas id="vu" title="输出电平"></canvas>
       <span class="cpu" id="cpu"></span>
-      <button class="btn sm" id="btn-help" title="帮助">?</button>
-      <button class="btn sm danger" id="btn-panic" title="全部静音 (Esc 两次)">✕</button>
+      <button class="btn sm" id="btn-help" title="帮助 Help">?</button>
+      <button class="btn sm danger" id="btn-panic" title="全部静音 Panic · all notes off (Esc ×2)">✕</button>
     </div>
   </header>
 
@@ -154,10 +154,10 @@
 
   <footer class="keys-wrap">
     <div class="keys-top">
-      <button class="btn sm" id="oct-down" title="降八度 (Z)">八度 −</button>
+      <button class="btn sm" id="oct-down" title="降八度 Octave down ( , )">八度 − <span class="en">Oct</span></button>
       <span id="oct-label" class="small">C3</span>
-      <button class="btn sm" id="oct-up" title="升八度 (X)">八度 +</button>
-      <span class="kbd-hint">电脑键盘两排：<kbd>Z</kbd>…<kbd>M</kbd> 低八度（<kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> 黑键）· <kbd>Q</kbd>…<kbd>]</kbd> 高八度（数字键黑键）· <kbd>,</kbd>/<kbd>.</kbd> 八度 · <kbd>空格</kbd> 刷新接口 · 点琴键下方更响</span>
+      <button class="btn sm" id="oct-up" title="升八度 Octave up ( . )">八度 + <span class="en">Oct</span></button>
+      <span class="kbd-hint">电脑键盘 Computer keys：<kbd>Z</kbd>…<kbd>M</kbd> 低八度（<kbd>S</kbd><kbd>D</kbd><kbd>G</kbd><kbd>H</kbd><kbd>J</kbd> 黑键）· <kbd>Q</kbd>…<kbd>]</kbd> 高八度（数字键黑键）· <kbd>,</kbd>/<kbd>.</kbd> 八度 · <kbd>空格</kbd> 刷新接口 · 点琴键下方更响</span>
       <div id="info-bar"></div>
     </div>
     <div id="keyboard"></div>

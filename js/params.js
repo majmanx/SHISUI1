@@ -21,7 +21,7 @@
 
   const PARAMS = [
     /* ---- 乐器与演奏 ---- */
-    S('inst', '乐器', 'Instrument', 'inst', 'synth', [['guzheng', '古筝 Guzheng'], ['erhu', '二胡 Erhu'], ['dizi', '竹笛 Dizi'], ['guan', '管子·唢呐 Guan'], ['strings', '弦乐群 Strings']], 'guzheng', { tip: '物理建模核心：拨弦(古筝)、拉弦(二胡)、吹孔(竹笛)、簧片(管子/唢呐)、弦乐群(减法合成)。' }),
+    S('inst', '乐器', 'Instrument', 'inst', 'synth', [['guzheng', '古筝 Guzheng'], ['erhu', '二胡 Erhu'], ['dizi', '竹笛 Dizi'], ['guan', '管子·唢呐 Guan / Suona'], ['strings', '弦乐群 Strings']], 'guzheng', { tip: '物理建模核心：拨弦(古筝)、拉弦(二胡)、吹孔(竹笛)、簧片(管子/唢呐)、弦乐群(减法合成)。' }),
     T('mono', '单音连奏', 'Mono legato', 'inst', 'synth', 0, { tip: '单音模式：新音不重触发，用滑音连接。拉弦/管乐建议打开。' }),
     K('glide', '滑音', 'Glide', 'inst', 'synth', 0, 1.5, 0.05, { curve: 'exp', fmt: ms, tip: '音高过渡时间。二胡的"抹音"、唢呐的"滑腔"靠它。', rnd: [0, 0.5] }),
     K('spread', '声场', 'Spread', 'inst', 'synth', 0, 1, 0.5, { fmt: pct, tip: '每个发声单元随机左右分布。' }),
@@ -41,7 +41,7 @@
     K('gz.nail', '义甲', 'Nail', 'guzheng', 'synth', 0, 1, 0.6, { fmt: pct, tip: '义甲硬度：拨弦噪声与攻击力。', rnd: [0.2, 1] }),
     K('gz.slide', '按滑', 'Press slide', 'guzheng', 'synth', -12, 12, 0, { fmt: st, tip: '左手按弦滑音：起音时从偏离的音高滑到目标音。正=上滑。', rnd: [0.35, 0.65] }),
     K('gz.slideTime', '按滑时长', 'Slide time', 'guzheng', 'synth', 0.02, 1.5, 0.25, { curve: 'exp', fmt: ms }),
-    K('gz.yaozhi', '摇指', 'Tremolo (yaozhi)', 'guzheng', 'synth', 0, 24, 0, { fmt: (v) => (v < 0.2 ? '关' : v.toFixed(1) + ' Hz'), tip: '摇指：按住琴键时以此速度反复拨弦。', rnd: [0, 0.6] }),
+    K('gz.yaozhi', '摇指', 'Tremolo (yaozhi)', 'guzheng', 'synth', 0, 24, 0, { fmt: (v) => (v < 0.2 ? '关 Off' : v.toFixed(1) + ' Hz'), tip: '摇指：按住琴键时以此速度反复拨弦。', rnd: [0, 0.6] }),
     K('gz.damp', '止音', 'Damping', 'guzheng', 'synth', 0, 1, 0.4, { fmt: pct, tip: '松键后手掌止音的力度。0=任其回响。' }),
     /* ---- 二胡 ---- */
     K('er.pressure', '弓压', 'Bow pressure', 'erhu', 'synth', 0, 1, 0.55, { fmt: pct, tip: '弓毛压力。低=飘、气声；高=粗、嘶哑。', rnd: [0.2, 0.9] }),
@@ -66,7 +66,7 @@
     K('el.drive', '拾音增益', 'Pickup drive', 'elec', 'synth', 0, 1, 0.3, { fmt: pct, tip: '拾音器前级饱和。', rnd: [0, 1] }),
     K('el.bias', '偏置', 'Bias', 'elec', 'synth', 0, 1, 0.2, { fmt: pct, tip: '非对称偏置 → 偶次谐波，更"暖"。', rnd: [0, 1] }),
     K('el.synth', '合成层', 'Synth layer', 'elec', 'synth', 0, 1, 0, { fmt: pct, tip: '叠加一个振荡器层，让声学乐器像插了电一样厚。', rnd: [0, 0.7] }),
-    S('el.wave', '合成波形', 'Layer wave', 'elec', 'synth', [[0, '锯齿'], [1, '方波'], [2, '正弦']], 0),
+    S('el.wave', '合成波形', 'Layer wave', 'elec', 'synth', [[0, '锯齿 Saw'], [1, '方波 Square'], [2, '正弦 Sine']], 0),
     K('el.detune', '合成移调', 'Layer transpose', 'elec', 'synth', -24, 24, 0, { step: 1, fmt: st, rnd: [0.25, 0.75] }),
     K('el.sub', '次低音', 'Sub', 'elec', 'synth', 0, 1, 0, { fmt: pct, tip: '低八度正弦，给"斗破"的底气。', rnd: [0, 0.8] }),
     /* ---- 毒液 ---- */
@@ -77,7 +77,7 @@
     K('vn.crush', '碎裂', 'Crush', 'venom', 'amp', 0, 1, 0.2, { fmt: pct, rnd: [0, 0.8] }),
     K('vn.ooze', '流淌', 'Ooze drift', 'venom', 'synth', 0, 1, 0.3, { fmt: pct, tip: '液态金属般的随机音高漂移。', rnd: [0, 1] }),
     /* ---- 滤波 ---- */
-    S('flt.type', '滤波类型', 'Filter type', 'filter', 'native', [['lowpass', '低通'], ['bandpass', '带通'], ['highpass', '高通']], 'lowpass'),
+    S('flt.type', '滤波类型', 'Filter type', 'filter', 'native', [['lowpass', '低通 Lowpass'], ['bandpass', '带通 Bandpass'], ['highpass', '高通 Highpass']], 'lowpass'),
     K('flt.cutoff', '截止', 'Cutoff', 'filter', 'native', 40, 18000, 9000, { curve: 'log', fmt: hz, rnd: [0.4, 1] }),
     K('flt.res', '共振', 'Resonance', 'filter', 'native', 0.1, 20, 0.8, { curve: 'log', fmt: (v) => 'Q ' + v.toFixed(2), rnd: [0, 0.6] }),
     K('flt.lfoRate', '滤波LFO速度', 'Filter LFO rate', 'filter', 'native', 0.05, 20, 0.5, { curve: 'log', fmt: hz, rnd: [0, 0.7] }),
@@ -92,7 +92,7 @@
     K('tube.sag', '电源下垂', 'Sag', 'tube', 'amp', 0, 1, 0.3, { fmt: pct, tip: '整流管电源下垂：大动态时压缩、"喘息"。', rnd: [0, 1] }),
     K('tube.xover', '交越失真', 'Crossover', 'tube', 'amp', 0, 1, 0, { fmt: pct, tip: '推挽功放冷偏置的交越失真。', rnd: [0, 0.3] }),
     K('tube.mix', '电子管混合', 'Tube mix', 'tube', 'amp', 0, 1, 0.5, { fmt: pct, rnd: [0.2, 1] }),
-    S('cab.type', '箱体', 'Cabinet', 'cab', 'amp', [[0, '直出'], [1, '琴身'], [2, '吉他箱'], [3, '毒液箱']], 1),
+    S('cab.type', '箱体', 'Cabinet', 'cab', 'amp', [[0, '直出 Bypass'], [1, '琴身 Body'], [2, '吉他箱 Guitar cab'], [3, '毒液箱 Venom cab']], 1),
     K('cab.mix', '箱体混合', 'Cabinet mix', 'cab', 'amp', 0, 1, 0.5, { fmt: pct, rnd: [0, 1] }),
     K('amp.hum', '电源哼声', 'Hum', 'amp', 'amp', 0, 1, 0, { fmt: pct, tip: '50Hz 电源哼声，真实老设备味。', rnd: [0, 0.3] }),
     K('amp.hiss', '底噪', 'Hiss', 'amp', 'amp', 0, 1, 0, { fmt: pct, rnd: [0, 0.3] }),
@@ -116,22 +116,22 @@
     K('mac.4', '毒 · 毒液', 'Macro 4 Venom', 'macro', 'host', 0, 1, 0, { fmt: pct, tip: '宏4：默认推动毒液量。' }),
     /* ---- LFO (主线程调制源) ---- */
     K('lfo1.rate', 'LFO1 速度', 'LFO1 rate', 'lfo', 'host', 0.02, 20, 0.25, { curve: 'log', fmt: hz }),
-    S('lfo1.shape', 'LFO1 波形', 'LFO1 shape', 'lfo', 'host', [['sine', '正弦'], ['tri', '三角'], ['square', '方波'], ['saw', '锯齿'], ['random', '随机(S&H)']], 'sine'),
+    S('lfo1.shape', 'LFO1 波形', 'LFO1 shape', 'lfo', 'host', [['sine', '正弦 Sine'], ['tri', '三角 Tri'], ['square', '方波 Square'], ['saw', '锯齿 Saw'], ['random', '随机 S&H']], 'sine'),
     K('lfo2.rate', 'LFO2 速度', 'LFO2 rate', 'lfo', 'host', 0.02, 20, 3, { curve: 'log', fmt: hz }),
-    S('lfo2.shape', 'LFO2 波形', 'LFO2 shape', 'lfo', 'host', [['sine', '正弦'], ['tri', '三角'], ['square', '方波'], ['saw', '锯齿'], ['random', '随机(S&H)']], 'tri'),
+    S('lfo2.shape', 'LFO2 波形', 'LFO2 shape', 'lfo', 'host', [['sine', '正弦 Sine'], ['tri', '三角 Tri'], ['square', '方波 Square'], ['saw', '锯齿 Saw'], ['random', '随机 S&H']], 'tri'),
     /* ---- 随机接口 ---- */
-    S('rnd.source', '随机源', 'Random source', 'random', 'host', [['crypto', '真随机 (crypto)'], ['pi', '圆周率 π'], ['c14', '碳-14 衰变'], ['mix', '三源混合']], 'c14', { tip: '给 R1-R4 接口供数的随机源。' }),
-    K('rnd.rate', '自动刷新', 'Auto refresh', 'random', 'host', 0, 8, 0, { fmt: (v) => (v < 0.05 ? '手动' : v.toFixed(2) + ' Hz'), tip: '0=只在按"刷新"时取新数；否则按此频率自动刷新。' }),
+    S('rnd.source', '随机源', 'Random source', 'random', 'host', [['crypto', '真随机 Crypto'], ['pi', '圆周率 π Pi'], ['c14', '碳-14 衰变 C-14 decay'], ['mix', '三源混合 Mix']], 'c14', { tip: '给 R1-R4 接口供数的随机源。' }),
+    K('rnd.rate', '自动刷新', 'Auto refresh', 'random', 'host', 0, 8, 0, { fmt: (v) => (v < 0.05 ? '手动 Manual' : v.toFixed(2) + ' Hz'), tip: '0=只在按"刷新"时取新数；否则按此频率自动刷新。' }),
     K('rnd.slew', '平滑', 'Slew', 'random', 'host', 0, 1, 0.3, { fmt: pct, tip: '接口数值变化的平滑时间。0=瞬变。' }),
     K('rnd.wild', '惊喜幅度', 'Surprise amount', 'random', 'host', 0, 1, 0.35, { fmt: pct, tip: '"惊喜"随机化整套音色时的偏离程度。' }),
     K('c14.atoms', '碳-14 原子数', 'C14 atoms', 'c14', 'host', 1e2, 1e8, 1e4, { curve: 'log', fmt: (v) => v.toExponential(1), tip: '模拟样本中的碳-14 原子数。' }),
-    K('c14.speed', '时间加速', 'Time scale', 'c14', 'host', 0.1, 1e4, 20, { curve: 'log', fmt: (v) => v.toFixed(0) + ' 年/秒', tip: '每现实秒模拟多少年（半衰期 5730 年）。' }),
+    K('c14.speed', '时间加速', 'Time scale', 'c14', 'host', 0.1, 1e4, 20, { curve: 'log', fmt: (v) => v.toFixed(0) + ' 年/秒 yr/s', tip: '每现实秒模拟多少年（半衰期 5730 年）。' }),
     K('c14.prob', '衰变触发', 'Decay → note', 'c14', 'host', 0, 1, 0, { fmt: pct, tip: '每次衰变事件以此概率触发一个音（用下方音阶）。' }),
-    S('c14.scale', '触发音阶', 'Trigger scale', 'c14', 'host', [['penta', '宫调五声'], ['yu', '羽调五声'], ['minor', '自然小调'], ['whole', '全音'], ['chrom', '半音']], 'penta'),
+    S('c14.scale', '触发音阶', 'Trigger scale', 'c14', 'host', [['penta', '宫调五声 Pentatonic gong'], ['yu', '羽调五声 Pentatonic yu'], ['minor', '自然小调 Minor'], ['whole', '全音 Whole-tone'], ['chrom', '半音 Chromatic']], 'penta'),
     T('c14.click', '盖革咔嗒', 'Geiger click', 'c14', 'host', 0, { tip: '每次衰变发出盖革计数器的咔嗒声。' }),
     /* ---- 琶音 / 走带 ---- */
     K('bpm', '速度', 'BPM', 'seq', 'host', 40, 240, 96, { step: 1, fmt: (v) => Math.round(v) + ' BPM', noRnd: true }),
-    S('arp.mode', '琶音', 'Arp mode', 'seq', 'host', [['off', '关'], ['up', '上行'], ['down', '下行'], ['updown', '上下'], ['random', '随机'], ['pi', 'π 序'], ['c14', '碳衰变触发']], 'off'),
+    S('arp.mode', '琶音', 'Arp mode', 'seq', 'host', [['off', '关 Off'], ['up', '上行 Up'], ['down', '下行 Down'], ['updown', '上下 Up-down'], ['random', '随机 Random'], ['pi', 'π 序 Pi order'], ['c14', '碳衰变触发 C-14 trigger']], 'off'),
     S('arp.rate', '琶音速率', 'Arp rate', 'seq', 'host', [[1, '1/4'], [2, '1/8'], [4, '1/16'], [3, '1/8T'], [8, '1/32']], 2),
     K('arp.oct', '琶音八度', 'Arp octaves', 'seq', 'host', 1, 3, 1, { step: 1, fmt: (v) => Math.round(v) + ' oct' }),
     K('arp.gate', '琶音门限', 'Arp gate', 'seq', 'host', 0.1, 1, 0.6, { fmt: pct }),
@@ -161,7 +161,7 @@
   }
   function fmt(p, v) {
     if (p.type === 'select') { const o = p.options.find((o) => o[0] == v); return o ? o[1] : String(v); }
-    if (p.type === 'toggle') return v ? '开' : '关';
+    if (p.type === 'toggle') return v ? '开 On' : '关 Off';
     return p.fmt ? p.fmt(v) : (Math.abs(v) < 10 ? v.toFixed(2) : v.toFixed(0));
   }
   const defaults = () => { const o = {}; for (const p of PARAMS) o[p.id] = p.def; return o; };
@@ -171,12 +171,23 @@
     elec: '插电 · 拾音器', venom: '毒液', filter: '滤波', amp: '放大器', diode: '二极管', tube: '电子管', cab: '箱体',
     chorus: '合唱', delay: '延迟', reverb: '石厅混响', master: '总线', macro: '宏', lfo: 'LFO', random: '随机接口', c14: '碳-14', seq: '琶音',
   };
+  const GROUPS_EN = {
+    inst: 'Play', vib: 'Vibrato', env: 'Envelope', guzheng: 'Guzheng', erhu: 'Erhu', dizi: 'Dizi', guan: 'Guan · Suona', strings: 'Strings',
+    elec: 'Electric · Pickup', venom: 'Venom', filter: 'Filter', amp: 'Amplifier', diode: 'Diode', tube: 'Tube', cab: 'Cabinet',
+    chorus: 'Chorus', delay: 'Delay', reverb: 'Hall reverb', master: 'Master', macro: 'Macros', lfo: 'LFO', random: 'Random bay', c14: 'Carbon-14', seq: 'Arp',
+  };
+  /* 中文分组标题 → 英文 (UI.group 自动附加) */
+  const TITLE_EN = {
+    '演奏': 'Play', '揉弦 · 颤音': 'Vibrato', '包络': 'Envelope', '拾音器': 'Pickup', '合成层': 'Synth layer', '毒液': 'Venom', '滤波': 'Filter', '二极管': 'Diode', '电子管': 'Tube', '箱体 · 电': 'Cabinet · Power',
+    '合唱': 'Chorus', '乒乓延迟': 'Ping-pong delay', '石厅混响': 'Hall reverb', '琶音 · 走带': 'Arp · Transport', '碳-14 衰变': 'Carbon-14 decay',
+    '古筝': 'Guzheng', '二胡': 'Erhu', '竹笛': 'Dizi', '管子 · 唢呐': 'Guan · Suona', '弦乐群': 'Strings',
+  };
   const SCALES = { penta: [0, 2, 4, 7, 9], yu: [0, 3, 5, 7, 10], minor: [0, 2, 3, 5, 7, 8, 10], whole: [0, 2, 4, 6, 8, 10], chrom: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] };
   const MOD_SOURCES = [
-    ['R1', '接口 R1'], ['R2', '接口 R2'], ['R3', '接口 R3'], ['R4', '接口 R4'],
-    ['LFO1', 'LFO 1'], ['LFO2', 'LFO 2'], ['DECAY', '衰变脉冲'], ['X', 'XY 板 X'], ['Y', 'XY 板 Y'],
-    ['M1', '宏 力'], ['M2', '宏 光'], ['M3', '宏 空'], ['M4', '宏 毒'], ['KEY', '键位'], ['VEL', '力度'], ['WHEEL', '调制轮'],
+    ['R1', '接口 R1 · Port R1'], ['R2', '接口 R2 · Port R2'], ['R3', '接口 R3 · Port R3'], ['R4', '接口 R4 · Port R4'],
+    ['LFO1', 'LFO 1'], ['LFO2', 'LFO 2'], ['DECAY', '衰变脉冲 · Decay'], ['X', 'XY 板 X · Pad X'], ['Y', 'XY 板 Y · Pad Y'],
+    ['M1', '宏 力 · Macro Force'], ['M2', '宏 光 · Macro Light'], ['M3', '宏 空 · Macro Space'], ['M4', '宏 毒 · Macro Venom'], ['KEY', '键位 · Key'], ['VEL', '力度 · Velocity'], ['WHEEL', '调制轮 · Mod wheel'],
   ];
   root.SHISUI = root.SHISUI || {};
-  Object.assign(root.SHISUI, { PARAMS, PARAM_MAP, GROUPS, SCALES, MOD_SOURCES, norm, denorm, fmt, defaults, keyOf });
+  Object.assign(root.SHISUI, { PARAMS, PARAM_MAP, GROUPS, GROUPS_EN, TITLE_EN, SCALES, MOD_SOURCES, norm, denorm, fmt, defaults, keyOf });
 })(typeof window !== 'undefined' ? window : globalThis);

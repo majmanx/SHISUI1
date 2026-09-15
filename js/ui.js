@@ -34,6 +34,7 @@
       this.lockIcon = svgEl('text', { class: 'k-lock', x: 50, y: 57, 'text-anchor': 'middle', 'font-size': 18, visibility: 'hidden' }); this.lockIcon.textContent = '🔒'; svg.appendChild(this.lockIcon);
       r.appendChild(svg);
       this.labelEl = el('div', 'knob-label', spec.label); r.appendChild(this.labelEl);
+      r.appendChild(el('div', 'knob-en', spec.en));
       this.valEl = el('div', 'knob-val', ''); r.appendChild(this.valEl);
       this.render(); this.bind();
     }
@@ -76,7 +77,7 @@
   class Select {
     constructor(spec, opts) {
       this.spec = spec; this.opts = opts || {}; const w = (this.el = el('div', 'sel')); w.dataset.param = spec.id; w.title = (spec.tip || '') + ' (' + spec.en + ')';
-      const lab = el('div', 'sel-label', spec.label); w.appendChild(lab);
+      const lab = el('div', 'sel-label', spec.label + ' <span class="en">' + spec.en + '</span>'); w.appendChild(lab);
       const s = (this.sel = document.createElement('select'));
       for (const o of spec.options) { const op = document.createElement('option'); op.value = String(o[0]); op.textContent = o[1]; s.appendChild(op); }
       s.value = String(spec.def); w.appendChild(s);
@@ -96,7 +97,7 @@
     constructor(spec, opts) {
       this.spec = spec; this.opts = opts || {}; this.value = spec.def ? 1 : 0;
       const b = (this.el = el('button', 'toggle' + (this.opts.big ? ' big' : ''))); b.dataset.param = spec.id; b.title = (spec.tip || '') + ' (' + spec.en + ')';
-      b.innerHTML = '<span class="tg-led"></span><span class="tg-label">' + spec.label + '</span>';
+      b.innerHTML = '<span class="tg-led"></span><span class="tg-label">' + spec.label + ' <span class="en">' + spec.en + '</span></span>';
       b.addEventListener('click', () => { this.set(this.value ? 0 : 1); if (this.opts.onChange) this.opts.onChange(this.value); });
       b.addEventListener('mouseenter', () => { if (this.opts.onHover) this.opts.onHover(spec); });
       this.render();
@@ -116,7 +117,8 @@
     const body = el('div', 'panel-body'); p.appendChild(body); p.body = body; return p;
   };
   UI.row = (children, cls) => { const r = el('div', 'row' + (cls ? ' ' + cls : '')); for (const c of children) if (c) r.appendChild(c.el || c); return r; };
-  UI.group = (title, children, cls) => { const g = el('div', 'grp' + (cls ? ' ' + cls : '')); if (title) g.appendChild(el('div', 'grp-title', title)); const r = el('div', 'row'); for (const c of children) if (c) r.appendChild(c.el || c); g.appendChild(r); return g; };
+  UI.bi = (zh, en) => zh + (en ? ' <span class="en">' + en + '</span>' : '');
+  UI.group = (title, children, cls) => { const g = el('div', 'grp' + (cls ? ' ' + cls : '')); if (title) g.appendChild(el('div', 'grp-title', UI.bi(title, S.TITLE_EN && S.TITLE_EN[title]))); const r = el('div', 'row'); for (const c of children) if (c) r.appendChild(c.el || c); g.appendChild(r); return g; };
   UI.btn = (label, cls, onClick, title) => { const b = el('button', 'btn' + (cls ? ' ' + cls : ''), label); if (title) b.title = title; if (onClick) b.addEventListener('click', onClick); return b; };
 
   /* ---------- 键盘 ---------- */
@@ -188,7 +190,7 @@
   class Palette {
     constructor(container, opts) {
       this.c = container; this.opts = opts; this.entries = []; this.sel = 0;
-      container.innerHTML = '<div class="pal-box"><input class="pal-input" placeholder="查找参数 / 预设 / 动作…  (输入中文、英文或拼音首字母)"><div class="pal-list"></div><div class="pal-hint">↑↓ 选择 · Enter 执行 · Esc 关闭</div></div>';
+      container.innerHTML = '<div class="pal-box"><input class="pal-input" placeholder="查找参数 / 预设 / 动作 · Find any parameter, preset or action (中文 / English)"><div class="pal-list"></div><div class="pal-hint">↑↓ 选择 Select · Enter 执行 Run · Esc 关闭 Close</div></div>';
       this.input = container.querySelector('.pal-input'); this.list = container.querySelector('.pal-list');
       this.input.addEventListener('input', () => this.render());
       this.input.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { this.sel++; this.render(); e.preventDefault(); } else if (e.key === 'ArrowUp') { this.sel--; this.render(); e.preventDefault(); } else if (e.key === 'Enter') { this.pick(); } else if (e.key === 'Escape') this.close(); });
