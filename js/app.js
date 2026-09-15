@@ -179,7 +179,7 @@
     bar.appendChild(UI.btn(UI.bi('⬇ 导出上次录音', 'Export last take'), 'gold', () => { const sl = state.slots[state.lastRecSlot]; if (sl && sl.buffer) exportSlot(state.lastRecSlot); else toast('还没有录音'); }, '把最近一次录音导出为 WAV'));
     bar.appendChild(UI.btn(UI.bi('📂 导入音频到槽', 'Import audio'), '', () => fileIn.click(), '把 wav/mp3/ogg 放进一个槽，用来混合创作'));
     bar.appendChild(slotFxT); bar.appendChild(UI.btn(UI.bi('■ 停止所有槽', 'Stop slots'), '', () => engine.stopAllSlots()));
-    bar.appendChild(UI.el('span', 'small', '提示：让几个槽循环播放，再弹奏并录音 = 叠录出新的音色素材。槽只在内存里，想留就导出 WAV。 Loop a few slots, play & record = overdub new material. Slots live in memory only; export WAV to keep.'));
+    bar.appendChild(UI.el('span', 'small', '提示：让几个槽循环播放，再弹奏并录音 = 叠录出新的音色素材。槽会保存在本浏览器（IndexedDB），刷新不丢；✕ 清空并删除存档。 Loop a few slots, play & record = overdub. Slots persist in this browser; ✕ clears and deletes.'));
     bar.appendChild(fileIn); prc.body.appendChild(bar);
     const grid = UI.el('div', 'slots'); state.slots = [];
     for (let i = 0; i < 8; i++) {
@@ -187,13 +187,13 @@
       const el = UI.el('div', 'slot empty'); const head = UI.el('div', 'slot-head', '<span class="slot-name">槽 ' + (i + 1) + ' <span class="en">Slot</span></span><span class="slot-len">空 Empty</span>'); el.appendChild(head);
       const cv = document.createElement('canvas'); cv.title = '点击：录到这个槽'; cv.addEventListener('click', () => { state.recTarget = i; renderSlots(); toast('下一次录音进入槽 ' + (i + 1)); }); el.appendChild(cv);
       const ctl = UI.el('div', 'slot-ctl');
-      const play = UI.btn('▶', '', () => toggleSlot(i), '播放 / 停止 Play / Stop'); const loop = UI.btn(UI.bi('循环', 'Loop'), '', () => { sl.loop = !sl.loop; loop.classList.toggle('on', sl.loop); if (sl.voice) sl.voice.src.loop = sl.loop; }, '循环播放');
-      const exp = UI.btn('⬇', '', () => exportSlot(i), '导出 WAV · Export WAV'); const clr = UI.btn('✕', 'danger', () => { stopSlot(i); sl.buffer = null; sl.name = ''; renderSlots(); }, '清空 Clear');
+      const play = UI.btn('▶', '', () => toggleSlot(i), '播放 / 停止 Play / Stop'); const loop = UI.btn(UI.bi('循环', 'Loop'), '', () => { sl.loop = !sl.loop; loop.classList.toggle('on', sl.loop); if (sl.voice) sl.voice.src.loop = sl.loop; if (sl.buffer) saveSlot(i); }, '循环播放 Loop');
+      const exp = UI.btn('⬇', '', () => exportSlot(i), '导出 WAV · Export WAV'); const clr = UI.btn('✕', 'danger', () => { if (sl.buffer && !confirm('清空槽 ' + (i + 1) + '？本地存档也会删除。\nClear slot ' + (i + 1) + '? Its saved copy will be deleted too.')) return; stopSlot(i); sl.buffer = null; sl.name = ''; saveSlot(i, true); renderSlots(); }, '清空并删除存档 Clear & delete saved copy');
       ctl.appendChild(play); ctl.appendChild(loop); ctl.appendChild(exp); ctl.appendChild(clr);
-      const gl = UI.el('label', '', '音量 <span class="en">Vol</span>'); const g = document.createElement('input'); g.type = 'range'; g.min = 0; g.max = 1.5; g.step = 0.01; g.value = sl.gain; g.addEventListener('input', () => { sl.gain = +g.value; if (sl.voice) sl.voice.gain.gain.setTargetAtTime(sl.gain, engine.ctx.currentTime, 0.01); }); gl.appendChild(g);
-      const rl = UI.el('label', '', '速度 <span class="en">Rate</span>'); const r = document.createElement('input'); r.type = 'range'; r.min = 0.25; r.max = 2; r.step = 0.01; r.value = 1; r.title = '播放速度（连带变调）'; r.addEventListener('input', () => { sl.rate = +r.value; if (sl.voice) sl.voice.src.playbackRate.setTargetAtTime(sl.rate, engine.ctx.currentTime, 0.01); }); r.addEventListener('dblclick', () => { r.value = 1; sl.rate = 1; if (sl.voice) sl.voice.src.playbackRate.value = 1; }); rl.appendChild(r);
+      const gl = UI.el('label', '', '音量 <span class="en">Vol</span>'); const g = document.createElement('input'); g.type = 'range'; g.min = 0; g.max = 1.5; g.step = 0.01; g.value = sl.gain; g.addEventListener('input', () => { sl.gain = +g.value; if (sl.voice) sl.voice.gain.gain.setTargetAtTime(sl.gain, engine.ctx.currentTime, 0.01); }); g.addEventListener('change', () => { if (sl.buffer) saveSlot(i); }); gl.appendChild(g);
+      const rl = UI.el('label', '', '速度 <span class="en">Rate</span>'); const r = document.createElement('input'); r.type = 'range'; r.min = 0.25; r.max = 2; r.step = 0.01; r.value = 1; r.title = '播放速度（连带变调）'; r.addEventListener('input', () => { sl.rate = +r.value; if (sl.voice) sl.voice.src.playbackRate.setTargetAtTime(sl.rate, engine.ctx.currentTime, 0.01); }); r.addEventListener('change', () => { if (sl.buffer) saveSlot(i); }); r.addEventListener('dblclick', () => { r.value = 1; sl.rate = 1; if (sl.voice) sl.voice.src.playbackRate.value = 1; if (sl.buffer) saveSlot(i); }); rl.appendChild(r);
       ctl.appendChild(gl); ctl.appendChild(rl); el.appendChild(ctl);
-      sl.el = el; sl.cv = cv; sl.playBtn = play; state.slots.push(sl); grid.appendChild(el);
+      sl.el = el; sl.cv = cv; sl.playBtn = play; sl.loopBtn = loop; sl.gainEl = g; sl.rateEl = r; state.slots.push(sl); grid.appendChild(el);
     }
     prc.body.appendChild(grid); main.appendChild(prc); renderSlots();
     renderModList(); updateSrcChips();
@@ -206,14 +206,14 @@
     if (!buf) { toast('录音太短'); return; }
     putSlot(state.recTarget, buf, '录音 ' + new Date().toLocaleTimeString()); state.lastRecSlot = state.recTarget; state.recTarget = nextFreeSlot(); renderSlots();
   }
-  function putSlot(i, buf, name) { const sl = state.slots[i]; stopSlot(i); sl.buffer = buf; sl.name = name; renderSlots(); toast('槽 ' + (i + 1) + '：' + name + ' · ' + buf.duration.toFixed(1) + ' s'); }
+  function putSlot(i, buf, name) { const sl = state.slots[i]; stopSlot(i); sl.buffer = buf; sl.name = name; sl.saved = false; renderSlots(); saveSlot(i, true); toast('槽 ' + (i + 1) + '：' + name + ' · ' + buf.duration.toFixed(1) + ' s'); }
   function toggleSlot(i) { const sl = state.slots[i]; if (sl.voice && !sl.voice.done) { stopSlot(i); return; } if (!sl.buffer) { toast('槽 ' + (i + 1) + ' 是空的：录一段或导入音频'); return; } sl.voice = engine.playBuffer(sl.buffer, { loop: sl.loop, gain: sl.gain, rate: sl.rate, fx: state.slotFx, onEnd: () => { sl.voice = null; renderSlots(); } }); renderSlots(); }
   function stopSlot(i) { const sl = state.slots[i]; if (sl.voice) { sl.voice.stop(); sl.voice = null; } renderSlots(); }
   function exportSlot(i) { const sl = state.slots[i]; if (!sl.buffer) return; const blob = S.Engine.encodeWav(sl.buffer); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); const ts = new Date(); a.download = 'shisui-slot' + (i + 1) + '-' + [ts.getHours(), ts.getMinutes(), ts.getSeconds()].map((x) => String(x).padStart(2, '0')).join('') + '.wav'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); toast('已导出 WAV：' + a.download); }
   function renderSlots() {
     state.slots.forEach((sl, i) => {
       sl.el.classList.toggle('empty', !sl.buffer); sl.el.classList.toggle('target', i === state.recTarget); sl.el.classList.toggle('playing', !!(sl.voice && !sl.voice.done));
-      sl.el.querySelector('.slot-len').textContent = sl.buffer ? sl.buffer.duration.toFixed(1) + ' s' : '空 Empty'; sl.el.querySelector('.slot-name').innerHTML = sl.buffer ? (sl.name.length > 9 ? sl.name.slice(0, 9) + '…' : sl.name) : '槽 ' + (i + 1) + ' <span class="en">Slot</span>';
+      sl.el.querySelector('.slot-len').textContent = sl.buffer ? sl.buffer.duration.toFixed(1) + ' s' + (sl.saved ? ' · 已存 saved' : '') : '空 Empty'; sl.el.querySelector('.slot-name').innerHTML = sl.buffer ? (sl.name.length > 9 ? sl.name.slice(0, 9) + '…' : sl.name) : '槽 ' + (i + 1) + ' <span class="en">Slot</span>';
       sl.playBtn.textContent = sl.voice && !sl.voice.done ? '■' : '▶';
       const cv = sl.cv, ctx = cv.getContext('2d'); const W = cv.width = Math.max(60, cv.clientWidth || 120), H = cv.height = 36; ctx.clearRect(0, 0, W, H);
       if (!sl.buffer) { ctx.fillStyle = 'rgba(232,193,90,0.35)'; ctx.font = '10px serif'; ctx.fillText(i === state.recTarget ? '● 下一次录音 Next take' : '空 Empty', 6, 22); return; }
@@ -285,6 +285,40 @@
   function redo() { if (!state.redo.length) return; const s = state.redo.pop(); state.undo.push(s); applySnapshot(JSON.parse(s)); toast('重做'); }
   function abToggle() { const cur = state.ab.cur; state.ab[cur] = snapshot(); const nxt = cur === 'A' ? 'B' : 'A'; state.ab.cur = nxt; if (state.ab[nxt]) applySnapshot(state.ab[nxt]); $('#btn-ab').textContent = nxt === 'A' ? 'A/B' : 'B/A'; toast('切换到音色槽 ' + nxt); pushUndo(); }
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 隐私模式等 */ } } };
+  /* ---- IndexedDB：声音槽持久化 ---- */
+  const idb = {
+    open() { return new Promise((res, rej) => { if (!root.indexedDB) return rej(new Error('no idb')); const r = root.indexedDB.open('shisui', 1); r.onupgradeneeded = () => { r.result.createObjectStore('slots'); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+    async put(k, v) { const db = await this.open(); return new Promise((res, rej) => { const tx = db.transaction('slots', 'readwrite'); tx.objectStore('slots').put(v, k); tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); }); },
+    async del(k) { const db = await this.open(); return new Promise((res, rej) => { const tx = db.transaction('slots', 'readwrite'); tx.objectStore('slots').delete(k); tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => rej(tx.error); }); },
+    async all() { const db = await this.open(); return new Promise((res, rej) => { const st = db.transaction('slots', 'readonly').objectStore('slots'); const rk = st.getAllKeys(), rv = st.getAll(); rv.onsuccess = () => { db.close(); res(rk.result.map((k, i) => [k, rv.result[i]])); }; rv.onerror = () => rej(rv.error); }); },
+  };
+  const slotSaveT = {};
+  function saveSlot(i, immediate) {
+    const sl = state.slots[i]; clearTimeout(slotSaveT[i]);
+    const doSave = async () => {
+      try {
+        if (!sl.buffer) { await idb.del(i); sl.saved = false; return; }
+        const b = sl.buffer; const data = []; for (let c = 0; c < b.numberOfChannels; c++) data.push(b.getChannelData(c).slice().buffer);
+        await idb.put(i, { name: sl.name, sr: b.sampleRate, len: b.length, ch: b.numberOfChannels, data, loop: sl.loop, gain: sl.gain, rate: sl.rate, savedAt: Date.now() });
+        sl.saved = true; renderSlots();
+      } catch (e) { sl.saved = false; console.warn('slot save failed', e); toast('声音槽无法持久化（浏览器不支持或空间不足） Slot could not be saved'); }
+    };
+    if (immediate) return doSave(); slotSaveT[i] = setTimeout(doSave, 600);
+  }
+  async function restoreSlots() {
+    let rows; try { rows = await idb.all(); } catch (e) { return; }
+    let n = 0;
+    for (const [k, r] of rows) {
+      const sl = state.slots[k]; if (!sl || !r || !r.data) continue;
+      try {
+        const buf = engine.ctx.createBuffer(r.ch, r.len, r.sr); for (let c = 0; c < r.ch; c++) buf.copyToChannel(new Float32Array(r.data[c]), c);
+        sl.buffer = buf; sl.name = r.name || ('槽 ' + (k + 1)); sl.loop = !!r.loop; sl.gain = r.gain == null ? 0.8 : r.gain; sl.rate = r.rate || 1; sl.saved = true;
+        sl.loopBtn.classList.toggle('on', sl.loop); sl.gainEl.value = sl.gain; sl.rateEl.value = sl.rate; n++;
+      } catch (e) { console.warn('slot restore failed', k, e); }
+    }
+    state.recTarget = nextFreeSlot(); renderSlots();
+    if (n) toast('已从本地恢复 ' + n + ' 个声音槽 · ' + n + ' slots restored');
+  }
   const userPresets = () => store.get(USER_KEY, []);
   const allPresets = () => S.PRESETS.concat(userPresets());
   function loadPreset(i, silent) {
@@ -415,7 +449,7 @@
     sched.onArpNote = (n, on) => keyboard.light(n, on);
     buildPanels(); buildPalette(); bindUI();
     for (const p of S.PARAMS) { engine.apply(p.id, state.patch[p.id]); hostApply(p.id, state.patch[p.id]); }
-    bus.refresh(); loadPreset(0, true);
+    bus.refresh(); loadPreset(0, true); restoreSlots();
     const last = store.get(LAST_KEY, null);
     if (last && last.snap && last.snap.patch) { try { applySnapshot(last.snap); state.presetIdx = last.presetIdx; $('#preset-title').textContent = last.name || '上次的音色'; renderPresetList(); setTimeout(() => toast('已恢复上次的音色'), 2600); } catch (e) { /* 忽略损坏的存档 */ } }
     state.undo = [JSON.stringify(snapshot())];
