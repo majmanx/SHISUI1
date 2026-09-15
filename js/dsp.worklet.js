@@ -118,12 +118,12 @@ function DSP_WORKLET_MAIN() {
       if (model === 'guzheng') {
         this.ks.clear(); this.lpY = this.apX = this.apY = 0; this.yz = 0;
         const n = Math.max(4, Math.floor(SR / f));
-        const e = new Float32Array(n); let lp = 0; const k = 0.06 + P.gzNail * 0.6; const pos = P.gzPos;
+        const pure = P.pure || 0; const e = new Float32Array(n); let lp = 0; const k = (0.05 + P.gzNail * 0.45) * (1 - pure * 0.6); const pos = P.gzPos;
         for (let i = 0; i < n; i++) { lp += ((Math.random() * 2 - 1) - lp) * k; e[i] = lp; }
         const pp = Math.max(1, Math.round(pos * n));
         for (let i = n - 1; i >= pp; i--) e[i] -= e[i - pp];
         // 三角形位移(拨弦点处最大) + 义甲噪声: 稳定的响度与真实的拨弦感
-        const nz = 0.25 + 0.55 * P.gzNail;
+        const nz = (0.12 + 0.45 * P.gzNail) * (1 - pure * 0.85);
         for (let i = 0; i < n; i++) { const x = i / n; const tri = (x < pos ? x / pos : (1 - x) / (1 - pos)) - 0.5; e[i] = tri * (1 - nz) * 1.6 + e[i] * nz; }
         const g = (0.35 + 0.65 * vel) * 1.1; for (let i = 0; i < n; i++) e[i] *= g;
         this.exc = e; this.excIdx = 0;
@@ -146,7 +146,7 @@ function DSP_WORKLET_MAIN() {
         this.cur += (this.target - this.cur) * c;
         if (Math.abs(this.cur - this.target) < 0.005) this.cur = this.target;
       }
-      const wm = P.warmth || 0; const cold = wm < 0 ? -wm : 0, warm = wm > 0 ? wm : 0;
+      const wm = P.warmth || 0; const cold = wm < 0 ? -wm : 0, warm = wm > 0 ? wm : 0; const pu = P.pure || 0, pk = 1 - pu * 0.85;
       const vd = P.vibDepth * (1 + warm * 0.35 - cold * 0.3) * Math.min(1, this.t / (P.vibDelay * SR + 1));
       this.vibPh += P.vibRate * (1 + cold * 0.35 - warm * 0.15) / SR; if (this.vibPh >= 1) this.vibPh -= 1;
       const vib = Math.sin(TWO_PI * this.vibPh) * vd;
@@ -185,7 +185,7 @@ function DSP_WORKLET_MAIN() {
           const bd = Math.max(8, SR / f - 4); const beta = P.erPos;
           this.bridge.setDelay(bd * beta); this.neck.setDelay(bd * (1 - beta));
           const maxV = 0.03 + 0.2 * (0.4 + 0.6 * vel);
-          const bowVel = maxV * e * (1 + (Math.random() * 2 - 1) * Math.min(1, P.erRosin * (1 + cold * 1.2) + cold * 0.12) * 0.35);
+          const bowVel = maxV * e * (1 + (Math.random() * 2 - 1) * Math.min(1, P.erRosin * (1 + cold * 1.2) + cold * 0.12) * 0.35 * pk);
           const bridgeRefl = -this.strF.tick(this.bridge.out);
           const nutRefl = -this.neck.out;
           const dv = bowVel - (bridgeRefl + nutRefl);
@@ -202,7 +202,7 @@ function DSP_WORKLET_MAIN() {
           const len = Math.max(6, SR / f - 2);
           this.bore.setDelay(len); this.jet.setDelay(Math.max(2, len * P.dzJet));
           let bp = P.dzBreath * (0.8 + 0.2 * vel) * e;
-          bp += bp * (Math.min(0.7, P.dzNoise * (1 + cold * 1.5) + cold * 0.08) * (Math.random() * 2 - 1) + 0.03 * Math.sin(TWO_PI * this.vibPh) * (vd > 0 ? 1 : 0));
+          bp += bp * (Math.min(0.7, P.dzNoise * (1 + cold * 1.5) + cold * 0.08) * pk * (Math.random() * 2 - 1) + 0.03 * Math.sin(TWO_PI * this.vibPh) * (vd > 0 ? 1 : 0));
           let temp = -this.flF.tick(this.bore.out); temp = this.dc.tick(temp);
           let pd = bp - 0.5 * temp;
           pd = this.jet.tick(pd);
@@ -219,7 +219,7 @@ function DSP_WORKLET_MAIN() {
           const slope = -0.5 + 0.2 * P.gnReed; const closure = 0.3 / -slope;
           let bp = closure * (0.83 + 0.17 * P.gnBreath) * (0.97 + 0.03 * e);
           if (e < 0.03) bp *= e * 33.3; // 起音/收音包络
-          bp += bp * Math.min(0.7, P.gnNoise * (1 + cold * 1.5) + cold * 0.06) * (Math.random() * 2 - 1);
+          bp += bp * Math.min(0.7, P.gnNoise * (1 + cold * 1.5) + cold * 0.06) * pk * (Math.random() * 2 - 1);
           const lo = 0.5 * (this.reed.out + this.clX1); this.clX1 = this.reed.out; // 单零点低通(闭管反射)
           const pd = -0.95 * lo - bp;
           let rt = 0.7 + slope * pd; if (rt > 1) rt = 1; else if (rt < -1) rt = -1;
@@ -244,10 +244,11 @@ function DSP_WORKLET_MAIN() {
       }
       /* ---- 插电 / 拾音器 / 合成层 ---- */
       let out = y;
-      if (P.elBlend > 0) {
-        const g = 1 + P.elDrive * 12; const bias = P.elBias * 0.7;
+      const eb = P.elBlend * (1 - pu);
+      if (eb > 0) {
+        const g = 1 + P.elDrive * P.elDrive * 12; const bias = P.elBias * 0.7;
         let d = (Math.tanh(y * g + bias) - Math.tanh(bias)) / Math.sqrt(g);
-        out = y * (1 - P.elBlend) + d * P.elBlend * 1.2;
+        out = y * (1 - eb) + d * eb * 1.2;
       }
       if (P.elSynth > 0) {
         const dt = f * Math.pow(2, P.elDetune / 12) / SR;
@@ -294,7 +295,7 @@ function DSP_WORKLET_MAIN() {
         gnBreath: 0.5, gnReed: 0.5, gnNoise: 0.1, gnBell: 0.3,
         stDetune: 12, stPw: 0.2,
         elBlend: 0, elDrive: 0.3, elBias: 0.2, elSynth: 0, elWave: 0, elDetune: 0, elSub: 0,
-        vnOn: 0, vnAmt: 0.5, vnFold: 0.3, vnFm: 0.3, vnOoze: 0.3, voices: 8, warmth: 0,
+        vnOn: 0, vnAmt: 0.5, vnFold: 0.3, vnFm: 0.3, vnOoze: 0.3, voices: 8, warmth: 0, pure: 0,
       };
       this.voices = []; for (let i = 0; i < 8; i++) this.voices.push(new Voice());
       this.noteStack = []; this.lastFreq = 0; this.geiger = 0; this.geigerLvl = 0;
@@ -391,30 +392,31 @@ function DSP_WORKLET_MAIN() {
       if (cabT !== this.cabType) this.setCab(cabT);
       const crush = A.vnOn > 0.5 && A.vnCrush > 0;
       const step = 1 + Math.floor(A.vnCrush * 40); const q = Math.pow(2, 16 - A.vnCrush * 12);
-      const dg = 1 + A.dioDrive * 24, thP = 0.3 + A.dioAsym * 0.4, thN = 0.7 - A.dioAsym * 0.4;
+      const pu = A.pure || 0, pk = 1 - pu; const dioMix = A.dioMix * pk, tubeMix = A.tubeMix * pk, cabMix = A.cabMix * (1 - pu * 0.7);
+      const dg = 1 + A.dioDrive * A.dioDrive * 24, thP = 0.3 + A.dioAsym * 0.4, thN = 0.7 - A.dioAsym * 0.4;
       const dNorm = 1 / (0.5 + (thP + thN) * 0.5);
       const tb = Math.min(1.2, A.tubeBias * 0.8 + (A.tubeBiasOffset || 0)), tbT = Math.tanh(tb), xo = A.tubeXover * 0.2;
       const humInc = TWO_PI * 50 / SR;
       for (let i = 0; i < n; i++) {
         let s = x[i] * A.ampIn;
         if (crush) { if (++this.crushCnt >= step) { this.crushCnt = 0; this.crushHold = Math.round(s * q) / q; } s = this.crushHold; }
-        if (A.dioMix > 0) {
+        if (dioMix > 0) {
           const s0 = (this.prev + s) * 0.5; this.prev = s;
           const d = (dclip(s0 * dg, thP, thN) + dclip(s * dg, thP, thN)) * 0.5 * dNorm * 0.6;
-          s = s * (1 - A.dioMix) + d * A.dioMix;
+          s = s * (1 - dioMix) + d * dioMix;
         } else this.prev = s;
-        if (A.tubeMix > 0) {
-          const g = (1 + A.tubeDrive * 30) / (1 + A.tubeSag * 3 * this.env);
+        if (tubeMix > 0) {
+          const g = (1 + A.tubeDrive * A.tubeDrive * 30) / (1 + A.tubeSag * 3 * this.env);
           let t = Math.tanh(s * g + tb) - tbT;
           if (xo > 0) { t = t > xo ? t - xo : t < -xo ? t + xo : 0; t /= 1 - xo; }
           const at = Math.abs(t); this.env += (at - this.env) * (at > this.env ? 0.003 : 0.00004);
           t = this.tLP.tick(t); t = this.dc.tick(t);
           t *= 0.85 / Math.pow(g, 0.25);
-          s = s * (1 - A.tubeMix) + t * A.tubeMix;
+          s = s * (1 - tubeMix) + t * tubeMix;
         }
-        if (cabT > 0 && A.cabMix > 0) { let c = s; for (let k = 0; k < 3; k++) c = this.cab[k].tick(c); s = s * (1 - A.cabMix) + c * A.cabMix; }
-        if (A.ampHum > 0) { this.humPh += humInc; if (this.humPh > TWO_PI) this.humPh -= TWO_PI; s += (Math.sin(this.humPh) * 0.02 + Math.sin(2 * this.humPh) * 0.008) * A.ampHum; }
-        if (A.ampHiss > 0) s += (Math.random() - 0.5) * A.ampHiss * 0.012;
+        if (cabT > 0 && cabMix > 0) { let c = s; for (let k = 0; k < 3; k++) c = this.cab[k].tick(c); s = s * (1 - cabMix) + c * cabMix; }
+        if (A.ampHum > 0 && pu < 0.99) { this.humPh += humInc; if (this.humPh > TWO_PI) this.humPh -= TWO_PI; s += (Math.sin(this.humPh) * 0.02 + Math.sin(2 * this.humPh) * 0.008) * A.ampHum; }
+        if (A.ampHiss > 0) s += (Math.random() - 0.5) * A.ampHiss * 0.012 * pk;
         y[i] = s * A.ampOut;
       }
     }

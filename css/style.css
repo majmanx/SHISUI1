@@ -510,3 +510,6 @@ body.venom .report-box textarea { background: rgba(0, 0, 0, 0.35); }
 .rand-stop { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .btn.warn { color: #8a2a12; border-color: rgba(184, 60, 30, 0.5); }
 .btn.warn.on { background: linear-gradient(180deg, #ffd9c8, #f0a080) !important; }
+
+.pure-knob { margin-left: 18px; }
+.pure-knob .k-arc { stroke: url(#pureStroke); }

@@ -91,7 +91,7 @@
     K('tube.bias', '栅偏压', 'Grid bias', 'tube', 'amp', 0, 1, 0.2, { fmt: pct, tip: '偏压偏离 → 非对称、更多偶次谐波。', rnd: [0, 1] }),
     K('tube.sag', '电源下垂', 'Sag', 'tube', 'amp', 0, 1, 0.3, { fmt: pct, tip: '整流管电源下垂：大动态时压缩、"喘息"。', rnd: [0, 1] }),
     K('tube.xover', '交越失真', 'Crossover', 'tube', 'amp', 0, 1, 0, { fmt: pct, tip: '推挽功放冷偏置的交越失真。', rnd: [0, 0.3] }),
-    K('tube.mix', '电子管混合', 'Tube mix', 'tube', 'amp', 0, 1, 0.5, { fmt: pct, rnd: [0.2, 1] }),
+    K('tube.mix', '电子管混合', 'Tube mix', 'tube', 'amp', 0, 1, 0.3, { fmt: pct, rnd: [0.2, 1] }),
     S('cab.type', '箱体', 'Cabinet', 'cab', 'amp', [[0, '直出', 'Bypass'], [1, '琴身', 'Body'], [2, '吉他箱', 'Guitar cab'], [3, '毒液箱', 'Venom cab']], 1),
     K('cab.mix', '箱体混合', 'Cabinet mix', 'cab', 'amp', 0, 1, 0.5, { fmt: pct, rnd: [0, 1] }),
     K('amp.hum', '电源哼声', 'Hum', 'amp', 'amp', 0, 1, 0, { fmt: pct, tip: '50Hz 电源哼声，真实老设备味。', rnd: [0, 0.3] }),
@@ -107,10 +107,11 @@
     K('rev.size', '石厅大小', 'Hall size', 'reverb', 'native', 0.3, 8, 2.5, { curve: 'exp', fmt: s, rnd: [0, 1] }),
     K('rev.damp', '石厅阻尼', 'Hall damping', 'reverb', 'native', 0, 1, 0.5, { fmt: pct, rnd: [0, 1] }),
     K('rev.mix', '石厅混合', 'Hall mix', 'reverb', 'native', 0, 1, 0.3, { fmt: pct, rnd: [0, 0.7] }),
-    K('comp.amount', '压缩', 'Compress', 'master', 'native', 0, 1, 0.3, { fmt: pct }),
+    K('comp.amount', '压缩', 'Compress', 'master', 'native', 0, 1, 0.2, { fmt: pct }),
     K('master.vol', '主音量', 'Master', 'master', 'native', 0, 1, 0.8, { fmt: pct, noRnd: true }),
     /* ---- 冷暖 ---- */
     K('tone.warm', '冷 · 暖', 'Cold · Warm', 'macro', 'native', -1, 1, 0, { bipolar: true, fmt: (v) => (v < -0.02 ? '❄ 寒 ' + Math.round(-v * 100) + '%' : v > 0.02 ? '🔥 暖 ' + Math.round(v * 100) + '%' : '中性 Neutral'), tip: '一个旋钮改变整台机器的体温：往左是肃杀寒风（高频锋利、气声与松香噪增多、颤音快而浅、冰冷的大石厅）；往右是小木屋烤火（低频温厚、电子管偶次谐波与轻饱和、颤音慢而深、近而暗的混响）。', rnd: [0.15, 0.85] }),
+    K('tone.pure', '净 · 纯净', 'Purity', 'macro', 'native', 0, 1, 0, { fmt: pct, tip: '一个旋钮让声音回到最干净的状态：逐步退掉拨弦噪、松香噪、气声、拾音器与电子管/二极管染色、箱体、压缩、混响毛边。1 = 原声纯音。毒液不受影响。', rnd: [0, 0.6] }),
     /* ---- 宏 (调制源) ---- */
     K('mac.1', '力 · 驱动', 'Macro 1 Force', 'macro', 'host', 0, 1, 0.3, { fmt: pct, tip: '宏1：默认推动电子管/二极管驱动。' }),
     K('mac.2', '光 · 亮度', 'Macro 2 Light', 'macro', 'host', 0, 1, 0.6, { fmt: pct, tip: '宏2：默认推动滤波截止与乐器亮度。' }),

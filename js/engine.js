@@ -49,11 +49,15 @@
       /* 石厅混响 */
       const revIn = this.revIn = ctx.createGain(); const revDry = ctx.createGain(); const revWet = this.revWet = ctx.createGain(); const revOut = this.revOut = ctx.createGain();
       const conv = this.conv = ctx.createConvolver(); revWet.gain.value = 0.3;
-      revIn.connect(revDry); revDry.connect(revOut); revIn.connect(conv); conv.connect(revWet); revWet.connect(revOut);
+      /* 混响湿路: 去低频浑浊 + 去高频毛刺 */
+      const revHP = ctx.createBiquadFilter(); revHP.type = 'highpass'; revHP.frequency.value = 140; revHP.Q.value = 0.5;
+      const revLP = this.revLP = ctx.createBiquadFilter(); revLP.type = 'lowpass'; revLP.frequency.value = 7500; revLP.Q.value = 0.5;
+      revIn.connect(revDry); revDry.connect(revOut); revIn.connect(conv); conv.connect(revHP); revHP.connect(revLP); revLP.connect(revWet); revWet.connect(revOut);
       this.revSize = 2.5; this.revDamp = 0.5; this.genIR();
 
       /* 压缩 / 主音量 / 限幅 / 分析 */
-      const comp = this.comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2; comp.knee.value = 10;
+      const comp = this.comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 3; comp.attack.value = 0.012; comp.release.value = 0.25; comp.knee.value = 18;
+      this.compAmt = 0.2; this.pure = 0;
       const master = this.master = ctx.createGain(); master.gain.value = 0.8;
       const lim = this.lim = ctx.createDynamicsCompressor(); lim.threshold.value = -1; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1; lim.knee.value = 0;
       const an = this.analyser = ctx.createAnalyser(); an.fftSize = 2048; an.smoothingTimeConstant = 0.75;
@@ -111,11 +115,13 @@
         case 'rev.size': this.revSize = v; this.scheduleIR(); break;
         case 'rev.damp': this.revDamp = v; this.scheduleIR(); break;
         case 'rev.mix': this.revWet.gain.setTargetAtTime(v, t, tc); break;
-        case 'comp.amount': this.comp.threshold.setTargetAtTime(-6 - v * 30, t, tc); this.comp.ratio.setTargetAtTime(1.5 + v * 10, t, tc); break;
+        case 'comp.amount': this.compAmt = v; this.applyComp(); break;
+        case 'tone.pure': this.pure = v; this.P.pure = v; this.A.pure = v; this.dirtyP = this.dirtyA = true; this.applyComp(); this.revLP.frequency.setTargetAtTime(7500 - v * 2500, t, 0.05); this.scheduleIR(); break;
         case 'master.vol': this.master.gain.setTargetAtTime(v * v, t, tc); break;
         default: break;
       }
     }
+    applyComp() { const v = this.compAmt * (1 - this.pure); const t = this.ctx.currentTime; this.comp.threshold.setTargetAtTime(-6 - v * 24, t, 0.02); this.comp.ratio.setTargetAtTime(1.5 + v * 6, t, 0.02); }
     flush() {
       if (!this.ready) return;
       if (this.dirtyP) { this.synth.port.postMessage({ type: 'params', P: this.P }); this.dirtyP = false; }
@@ -124,7 +130,7 @@
     scheduleIR() { clearTimeout(this._revTimer); this._revTimer = setTimeout(() => this.genIR(), 180); }
     genIR() {
       const ctx = this.ctx, sr = ctx.sampleRate; const wz = this.warmth || 0; const len = Math.max(1000, Math.floor(sr * this.revSize * (1 + (wz < 0 ? -wz * 0.6 : -wz * 0.3))));
-      const buf = ctx.createBuffer(2, len, sr); const w = this.warmth || 0; const damp = Math.min(1, Math.max(0, this.revDamp + (w > 0 ? w * 0.35 : w * 0.25)));
+      const buf = ctx.createBuffer(2, len, sr); const w = this.warmth || 0; const damp = Math.min(1, Math.max(0, this.revDamp + (w > 0 ? w * 0.35 : w * 0.25) + (this.pure || 0) * 0.3));
       for (let ch = 0; ch < 2; ch++) {
         const d = buf.getChannelData(ch); let lp = 0;
         for (let i = 0; i < len; i++) {

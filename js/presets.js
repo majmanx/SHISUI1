@@ -11,7 +11,7 @@
     ['M4', 'vn.on', 1], ['M4', 'vn.amt', 0.8], ['M4', 'vn.crush', 0.5], ['M4', 'cab.type', 0.6],
   ];
   const PRESETS = [
-    { name: '清筝 · 初雪', tags: ['古筝', '干净', '入门'], patch: { inst: 'guzheng', 'gz.bright': 0.72, 'gz.decay': 6, 'rev.mix': 0.28, 'rev.size': 3, 'dly.mix': 0.08 } },
+    { name: '清筝 · 初雪', tags: ['古筝', '干净', '入门'], patch: { inst: 'guzheng', 'gz.bright': 0.72, 'gz.decay': 6, 'gz.nail': 0.45, 'rev.mix': 0.28, 'rev.size': 3, 'dly.mix': 0.06, 'tube.mix': 0.15, 'tone.pure': 0.35 } },
     { name: '电筝 · 断电重启', tags: ['古筝', '插电', '斗破'], patch: { inst: 'guzheng', 'el.blend': 0.75, 'el.drive': 0.7, 'el.bias': 0.4, 'el.synth': 0.35, 'el.wave': 1, 'el.sub': 0.4, 'dio.mix': 0.6, 'dio.drive': 0.45, 'tube.drive': 0.5, 'tube.mix': 0.8, 'cab.type': 2, 'cab.mix': 0.8, 'dly.mix': 0.22, 'gz.stiff': 0.35, 'mac.1': 0.5 } },
     { name: '摇指 · 流水', tags: ['古筝', '摇指', '技法'], patch: { inst: 'guzheng', 'gz.yaozhi': 11, 'gz.slide': 2, 'gz.slideTime': 0.18, 'gz.bright': 0.6, 'gz.decay': 3, 'rev.mix': 0.4, 'rev.size': 4, 'vib.depth': 12 } },
     { name: '夜胡 · 二泉', tags: ['二胡', '独奏', '入门'], patch: { inst: 'erhu', mono: 1, glide: 0.12, 'env.a': 0.09, 'env.s': 1, 'env.r': 0.25, 'vib.rate': 5.2, 'vib.depth': 32, 'vib.delay': 0.35, 'er.pressure': 0.5, 'er.body': 0.7, 'rev.mix': 0.35, 'rev.size': 3.5, 'flt.cutoff': 7000 } },

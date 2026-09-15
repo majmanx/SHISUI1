@@ -137,6 +137,7 @@
     pm.body.appendChild(UI.row([K('mac.1', true), K('mac.2', true), K('mac.3', true), K('mac.4', true)], 'macros'));
     const wk = K('tone.warm', true); wk.el.classList.add('warm-knob');
     const wrow = UI.el('div', 'warm-row'); wrow.appendChild(UI.el('div', 'warm-side cold', '❄<br><span class="zh">寒风</span><span class="en">Cold</span>')); wrow.appendChild(wk.el); wrow.appendChild(UI.el('div', 'warm-side warm', '🔥<br><span class="zh">烤火</span><span class="en">Warm</span>'));
+    const pk = K('tone.pure', true); pk.el.classList.add('pure-knob'); wrow.appendChild(pk.el);
     pm.body.appendChild(wrow);
     const xyWrap = UI.el('div'); const xyEl = UI.el('div', 'xy'); xyWrap.appendChild(xyEl); xyWrap.appendChild(UI.el('div', 'xy-labels', '<span>← X 源 · X source →</span><span>↑ Y 源 · Y source</span>'));
     pm.body.appendChild(xyWrap); main.appendChild(pm);
