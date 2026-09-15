@@ -23,12 +23,15 @@
       const r = (this.el = el('div', 'knob' + (this.opts.big ? ' big' : '')));
       r.dataset.param = spec.id; r.title = (spec.tip ? spec.tip + ' ' : '') + '(' + spec.en + ')  拖动/滚轮调节 · Shift 微调 · 双击复位 · 右键锁定';
       const svg = svgEl('svg', { viewBox: '0 0 100 100', class: 'knob-svg' });
+      svg.appendChild(svgEl('circle', { class: 'k-plate', cx: 50, cy: 50, r: 47 }));
+      svg.appendChild(svgEl('circle', { class: 'k-plate-shade', cx: 50, cy: 50, r: 47 }));
       svg.appendChild(svgEl('path', { class: 'k-track', d: arcPath(50, 50, 40, -135, 135) }));
       this.modArc = svgEl('path', { class: 'k-mod', d: '' }); svg.appendChild(this.modArc);
       this.arc = svgEl('path', { class: 'k-arc', d: '' }); svg.appendChild(this.arc);
       svg.appendChild(svgEl('circle', { class: 'k-rim', cx: 50, cy: 50, r: 33 }));
       svg.appendChild(svgEl('circle', { class: 'k-body', cx: 50, cy: 50, r: 29 }));
       svg.appendChild(svgEl('circle', { class: 'k-shade', cx: 50, cy: 50, r: 29 }));
+      svg.appendChild(svgEl('circle', { class: 'k-bevel', cx: 50, cy: 50, r: 27.5 }));
       svg.appendChild(svgEl('ellipse', { class: 'k-gloss', cx: 44, cy: 38, rx: 16, ry: 9 }));
       this.ptr = svgEl('line', { class: 'k-ptr', x1: 50, y1: 46, x2: 50, y2: 25 }); svg.appendChild(this.ptr);
       this.modDot = svgEl('circle', { class: 'k-moddot', cx: 50, cy: 5, r: 3.2, visibility: 'hidden' }); svg.appendChild(this.modDot);
@@ -140,8 +143,8 @@
       this.c.innerHTML = ''; this.keys.clear();
       const whites = []; for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) whites.push(n); }
       const ww = 100 / whites.length;
-      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; k.style.backgroundPosition = 'center, ' + ((n * 37) % 100) + '% ' + ((n * 53) % 100) + '%'; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
-      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; k.style.backgroundPosition = 'center, ' + ((n * 41) % 100) + '% ' + ((n * 29) % 100) + '%'; this.c.appendChild(k); this.keys.set(n, k); }
+      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + ((n * 37) % 100) + '% ' + ((n * 53) % 100) + '%'; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
+      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + ((n * 41) % 100) + '% ' + ((n * 29) % 100) + '%'; this.c.appendChild(k); this.keys.set(n, k); }
       const noteAt = (e) => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.dataset && t.dataset.note ? +t.dataset.note : null; };
       const velAt = (e, k) => { const r = k.getBoundingClientRect(); return Math.min(1, Math.max(0.15, (e.clientY - r.top) / r.height * 0.9 + 0.2)); };
       this.c.addEventListener('pointerdown', (e) => { const n = noteAt(e); if (n == null) return; e.preventDefault(); this.c.setPointerCapture(e.pointerId); const v = velAt(e, this.keys.get(n)); this.pointerNote.set(e.pointerId, n); this.press(n, v, 'mouse'); });

@@ -83,7 +83,7 @@
     st.setProperty('--marble-white-img', 'url("' + white + '")'); st.setProperty('--marble-cream-img', 'url("' + cream + '")');
     st.setProperty('--marble-black-img', 'url("' + black + '")'); st.setProperty('--marble-obsidian-img', 'url("' + obsidian + '")');
     const set = (id, url) => { const im = document.querySelector('#' + id + ' image'); if (im) { im.setAttribute('href', url); im.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url); } };
-    set('marbleKnob', white); set('marbleKnobDark', black);
+    set('marbleKnob', white); set('marbleKnobDark', black); set('marblePlate', cream); set('marblePlateDark', obsidian);
     document.body.classList.add('marble-ready');
     return S.marble;
   }

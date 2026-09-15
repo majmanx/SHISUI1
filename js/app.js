@@ -276,6 +276,12 @@
     const tiles = UI.el('div', 'tiles');
     for (const [id, ico, name, en] of INST_TILES) { const t = UI.el('div', 'tile' + (real('inst') === id ? ' on' : ''), '<div class="t-ico">' + ico + '</div><div class="t-name">' + name + '</div><div class="t-en">' + en + '</div>'); t.addEventListener('click', () => { setParam('inst', id, { commit: true }); toast(name); }); t.addEventListener('mouseenter', () => info(S.PARAM_MAP.inst)); tiles.appendChild(t); }
     instBody.appendChild(tiles);
+    const ar = UI.row([
+      UI.btn(UI.bi('🎐 原声', 'Acoustic'), 'gold', acousticNow, '把当前乐器恢复为最接近真实乐器的原声设置，并告诉你它像哪件传世乐器 · Restore the natural acoustic sound and tell you which real instrument it resembles'),
+      UI.btn(UI.bi('⟲ 全部重置', 'Reset everything'), 'reset-all', resetEverything, '把所有旋钮、接线、随机接口、宏全部恢复出厂（两次确认；我的预设与声音槽不受影响）'),
+    ]);
+    instBody.appendChild(ar);
+    if (state.acousticCard) { const c = UI.el('div', 'acoustic-card', state.acousticCard); instBody.appendChild(c); }
     const g = INST_GROUP[real('inst')]; const ids = S.PARAMS.filter((p) => p.group === g).map((p) => p.id);
     instBody.appendChild(UI.group(S.GROUPS[g], ids.map((id) => K(id)), 'lvl2-inline'));
     instBody.appendChild(UI.row([UI.group('演奏', [K('mono'), K('glide'), K('spread'), K('voices')]), UI.group('揉弦 · 颤音', [K('vib.rate'), K('vib.depth'), K('vib.delay')]), UI.group('包络', [K('env.a'), K('env.d'), K('env.s'), K('env.r')])], 'lvl2-inline'));
@@ -297,6 +303,22 @@
   function stopRandom() {
     setDecayPaused(true); setParam('rnd.rate', 0); setParam('c14.prob', 0); if (real('arp.mode') === 'c14') setParam('arp.mode', 'off'); bus.decayDrive = false; state.decayEnv = 0; pushUndo();
     toast('随机已全部停止：自动刷新 / 衰变触发 / 碳衰变琶音都已关闭 · All randomness stopped');
+  }
+  function acousticNow() {
+    const inst = real('inst'); const a = S.ACOUSTIC[inst]; if (!a) return;
+    const patch = S.defaults(); Object.assign(patch, a.patch); const mods = S.DEFAULT_MODS.map((m) => ({ src: m[0], dst: m[1], amt: m[2] }));
+    state.acousticCard = '<b>' + a.name + '</b> · 最接近：<b>' + a.like + '</b><br>' + a.why + '<span class="en-line">Closest real instrument: ' + a.like + '</span>';
+    applySnapshot({ patch, mods }); state.presetIdx = -1; $('#preset-title').textContent = a.name; renderPresetList(); pushUndo(); logAction('acoustic ' + inst);
+    if (state.mode === 'play') setMode('shape'); toast('原声：' + a.name + ' · 像 ' + a.like);
+  }
+  function resetEverything() {
+    if (!confirm('全部重置？所有旋钮、接线、随机接口、宏都会恢复出厂。\nReset everything? All knobs, routings, ports and macros return to factory.')) return;
+    if (!confirm('再确认一次：确定全部重置？（可用撤销回退；我的预设和声音槽不受影响）\nConfirm again. Undo is available; your saved presets and slots are kept.')) return;
+    state.acousticCard = null; state.locks.clear(); for (const id in controls) if (controls[id].setLocked) controls[id].setLocked(false);
+    const patch = S.defaults(); const mods = S.DEFAULT_MODS.map((m) => ({ src: m[0], dst: m[1], amt: m[2] }));
+    applySnapshot({ patch, mods }); state.presetIdx = -1; $('#preset-title').textContent = '出厂状态 Factory'; renderPresetList();
+    bus.decayDrive = true; setDecayPaused(false); resetRandom(); state.xy = [0.5, 0.5]; if (xyPad) xyPad.set(0.5, 0.5); state.wheel = 0;
+    if (sched) { sched.clearAll(); sched.held = []; } engine.allOff(); pushUndo(); logAction('reset everything'); toast('已全部重置为出厂状态 · Everything reset');
   }
   function resetRandom() {
     for (let i = 0; i < 4; i++) { bus.raw[i] = 0.5; bus.val[i] = 0.5; } bus.lastSrcUsed = []; bus.c14.reset(real('c14.atoms')); bus.pi.seek(0); state.decayEnv = 0; state.effCache = {};
@@ -423,7 +445,7 @@
     const all = allPresets(); const pr = all[((i % all.length) + all.length) % all.length]; state.presetIdx = all.indexOf(pr);
     const patch = S.defaults(); Object.assign(patch, pr.patch);
     const mods = (pr.user ? (pr.mods || []) : S.DEFAULT_MODS.concat(pr.mods || [])).map((m) => (Array.isArray(m) ? { src: m[0], dst: m[1], amt: m[2] } : m));
-    applySnapshot({ patch, mods }); $('#preset-title').textContent = pr.name; renderPresetList(); pushUndo(); logAction('preset ' + pr.name); if (!silent) toast('预设：' + pr.name);
+    state.acousticCard = null; applySnapshot({ patch, mods }); $('#preset-title').textContent = pr.name; renderPresetList(); pushUndo(); logAction('preset ' + pr.name); if (!silent) toast('预设：' + pr.name);
   }
   function saveUserPreset() {
     const name = prompt('给这个音色起个名字：', state.presetIdx >= 0 ? allPresets()[state.presetIdx].name + ' · 改' : '我的音色'); if (!name) return;
@@ -537,7 +559,7 @@
     for (const p of S.PARAMS) entries.push({ kind: '参数', label: p.label, en: p.en + ' ' + p.id, abbr: S.GROUPS[p.group] || '', act: () => { const c = controls[p.id]; if (!c) return; if (!c.el.offsetParent) setMode('deep'); setTimeout(() => c.flash(), 50); info(p); } });
     allPresets().forEach((pr, i) => entries.push({ kind: pr.user ? '我的预设' : '预设', label: pr.name, en: pr.tags.join(' '), act: () => loadPreset(i) }));
     for (const [id, , name, en] of INST_TILES) entries.push({ kind: '乐器', label: name, en, act: () => setParam('inst', id, { commit: true }) });
-    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['毒液模式玩法引导', 'venom guide', openVenomIntro], ['报错 / 反馈', 'report bug feedback', openReport], ['素面切换', 'plain toggle', () => setPlain(!document.body.classList.contains('plain'))], ['暂停 / 继续 碳-14 衰变', 'pause decay', () => setDecayPaused(!bus.paused)], ['停止全部随机', 'stop random', stopRandom], ['复位随机接口', 'reset random ports', resetRandom], ['断开随机接线', 'unroute random', unrouteRandom], ['语言：双语', 'language both', () => setLang('both')], ['语言：中文', 'language chinese', () => setLang('zh')], ['Language: English', 'language english', () => setLang('en')], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
+    const acts = [['毒液模式 切换', 'venom toggle', () => setParam('vn.on', real('vn.on') ? 0 : 1, { commit: true })], ['惊喜 随机化音色', 'surprise randomize', surprise], ['刷新随机接口', 'refresh random', () => bus.refresh()], ['模式：玩', 'mode play', () => setMode('play')], ['模式：塑', 'mode shape', () => setMode('shape')], ['模式：深', 'mode deep', () => setMode('deep')], ['帮助', 'help', () => $('#help').classList.add('open')], ['全部静音', 'panic all notes off', () => engine.panic()], ['撤销', 'undo', undo], ['重做', 'redo', redo], ['A/B 切换', 'ab compare', abToggle], ['低动效（省电）切换', 'low motion', () => document.body.classList.toggle('low-motion')], ['存为我的预设', 'save preset', saveUserPreset], ['毒液模式玩法引导', 'venom guide', openVenomIntro], ['报错 / 反馈', 'report bug feedback', openReport], ['原声：恢复当前乐器的真实音色', 'acoustic natural', acousticNow], ['全部重置（两次确认）', 'reset everything factory', resetEverything], ['素面切换', 'plain toggle', () => setPlain(!document.body.classList.contains('plain'))], ['暂停 / 继续 碳-14 衰变', 'pause decay', () => setDecayPaused(!bus.paused)], ['停止全部随机', 'stop random', stopRandom], ['复位随机接口', 'reset random ports', resetRandom], ['断开随机接线', 'unroute random', unrouteRandom], ['语言：双语', 'language both', () => setLang('both')], ['语言：中文', 'language chinese', () => setLang('zh')], ['Language: English', 'language english', () => setLang('en')], ['录音 开始/停止', 'record', toggleRecord], ['停止所有声音槽', 'stop slots', () => { engine.stopAllSlots(); }]];
     for (const [l, e, f] of acts) entries.push({ kind: '动作', label: l, en: e, act: f });
     if (!palette) palette = new UI.Palette($('#palette'), { onPick: (e) => e.act() }); palette.setEntries(entries);
   }
