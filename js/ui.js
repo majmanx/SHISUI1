@@ -23,6 +23,12 @@
       const r = (this.el = el('div', 'knob' + (this.opts.big ? ' big' : '')));
       r.dataset.param = spec.id; r.title = (spec.tip ? spec.tip + ' ' : '') + '(' + spec.en + ')  拖动/滚轮调节 · Shift 微调 · 双击复位 · 右键锁定';
       const svg = svgEl('svg', { viewBox: '0 0 100 100', class: 'knob-svg' });
+      // 每个旋钮自己的鎏金图案: 同一贴图, 随机位移 + 旋转 + 缩放 → 没有两个旋钮相同
+      const uid = 'kp' + (Knob.seq = (Knob.seq || 0) + 1); const defs = svgEl('defs', {});
+      // 图案通过 <use> 引用全局那一张贴图 (不复制数据), 只有位移/旋转/缩放各不相同
+      const mk = (id, ref, scale) => { const ang = Math.floor(Math.random() * 360), tx = Math.floor(Math.random() * 200), ty = Math.floor(Math.random() * 200); const pat = svgEl('pattern', { id, patternUnits: 'userSpaceOnUse', width: 200, height: 200, patternTransform: 'rotate(' + ang + ' 50 50) translate(' + -tx + ' ' + -ty + ') scale(' + scale + ')' }); const u = svgEl('use', {}); u.setAttribute('href', '#' + ref); u.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#' + ref); pat.appendChild(u); defs.appendChild(pat); };
+      const sc = (0.85 + Math.random() * 0.5).toFixed(2); mk(uid + 'l', 'mkImgWhite', sc); mk(uid + 'd', 'mkImgBlack', sc); mk(uid + 'p', 'mkImgCream', (1.1 + Math.random() * 0.5).toFixed(2)); mk(uid + 'q', 'mkImgObsidian', 1);
+      svg.appendChild(defs); svg.style.setProperty('--kp', 'url(#' + uid + 'l)'); svg.style.setProperty('--kpd', 'url(#' + uid + 'd)'); svg.style.setProperty('--kpp', 'url(#' + uid + 'p)'); svg.style.setProperty('--kpq', 'url(#' + uid + 'q)');
       svg.appendChild(svgEl('circle', { class: 'k-plate', cx: 50, cy: 50, r: 47 }));
       svg.appendChild(svgEl('circle', { class: 'k-plate-shade', cx: 50, cy: 50, r: 47 }));
       svg.appendChild(svgEl('path', { class: 'k-track', d: arcPath(50, 50, 40, -135, 135) }));
@@ -143,8 +149,8 @@
       this.c.innerHTML = ''; this.keys.clear();
       const whites = []; for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) whites.push(n); }
       const ww = 100 / whites.length;
-      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + ((n * 37) % 100) + '% ' + ((n * 53) % 100) + '%'; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
-      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + ((n * 41) % 100) + '% ' + ((n * 29) % 100) + '%'; this.c.appendChild(k); this.keys.set(n, k); }
+      whites.forEach((n, i) => { const k = el('div', 'key white'); k.style.left = i * ww + '%'; k.style.width = ww + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + (-Math.floor(Math.random() * 300)) + 'px ' + (-Math.floor(Math.random() * 300)) + 'px'; if (n % 12 === 0) k.appendChild(el('span', 'key-name', 'C' + (n / 12 - 1))); this.c.appendChild(k); this.keys.set(n, k); });
+      for (let i = 0; i < this.count; i++) { const n = this.base + i; if (![1, 3, 6, 8, 10].includes(n % 12)) continue; const wi = whites.filter((w) => w < n).length; const k = el('div', 'key black'); k.style.left = (wi * ww - ww * 0.3) + '%'; k.style.width = ww * 0.6 + '%'; k.dataset.note = n; k.dataset.name = UI.noteName(n); k.style.backgroundPosition = 'center, ' + (-Math.floor(Math.random() * 300)) + 'px ' + (-Math.floor(Math.random() * 300)) + 'px'; this.c.appendChild(k); this.keys.set(n, k); }
       const noteAt = (e) => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.dataset && t.dataset.note ? +t.dataset.note : null; };
       const velAt = (e, k) => { const r = k.getBoundingClientRect(); return Math.min(1, Math.max(0.15, (e.clientY - r.top) / r.height * 0.9 + 0.2)); };
       this.c.addEventListener('pointerdown', (e) => { const n = noteAt(e); if (n == null) return; e.preventDefault(); this.c.setPointerCapture(e.pointerId); const v = velAt(e, this.keys.get(n)); this.pointerNote.set(e.pointerId, n); this.press(n, v, 'mouse'); });

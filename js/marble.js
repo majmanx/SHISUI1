@@ -84,12 +84,12 @@
       const mask = fMask(u * 3.6 + 11, v * 3.6 + 5, 3);
       const wv = fWidth(u * 2.5 + 4, v * 2.5 + 6, 2); // 脉络宽窄变化
       // 底色: 云纹 (柔和灰白)
-      let g = dark ? 26 + (cloud - 0.5) * 36 : 247 - (cloud - 0.5) * 64;
+      let g = dark ? 30 + (cloud - 0.5) * 44 : 247 - (cloud - 0.5) * 64;
       // 灰脉: 宽而柔的晕 + 断续的深色芯
       const soft = Math.exp(-Math.pow((vn - 0.5) / (0.05 + 0.07 * wv), 2)) * (0.25 + 0.5 * wv);
       const core = Math.exp(-Math.pow((vn - 0.5) / 0.011, 2)) * sm(0.42, 0.55, mask + (det - 0.5) * 0.2);
       const crack = Math.exp(-Math.pow((cr - 0.5) / 0.006, 2)) * sm(0.45, 0.6, wv);
-      g += dark ? soft * 48 + core * 70 + crack * 60 : -soft * 58 - core * 95 - crack * 80;
+      g += dark ? soft * 70 + core * 95 + crack * 80 : -soft * 58 - core * 95 - crack * 80;
       let r = g, gg = g, bb = g + (dark ? 7 : 5);
       // 金箔: (1) 沿脉络的金丝带 (2) 团簇金箔; 边缘由高频噪声撕碎
       const ribbon = Math.exp(-Math.pow((cr - 0.5) / 0.03, 2)) * sm(0.5, 0.58, mask + (det - 0.5) * 0.3);
@@ -113,15 +113,18 @@
     const sheen = ctx.createLinearGradient(0, 0, size, size); sheen.addColorStop(0, 'rgba(255,255,255,0.06)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(255,255,255,0.05)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, size, size);
     return cv.toDataURL('image/png');
   }
-  function build() {
-    if (S.marble) return S.marble;
+  S.marbleImages = []; // 需要随纹理重生成而更新的 <image> (每个旋钮各自的图案)
+  S.registerMarbleImage = (img, kind) => { S.marbleImages.push({ img, kind }); if (S.marble && S.marble[kind]) { img.setAttribute('href', S.marble[kind]); img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', S.marble[kind]); } };
+  function build(goldScale) {
+    if (S.marble && goldScale == null) return S.marble;
+    const gs = goldScale == null ? (S.marbleGold == null ? 1 : S.marbleGold) : goldScale; S.marbleGold = gs;
     const t0 = performance.now();
-    const white = genGilded({ seed: 19, size: 384, gold: 1 });            // 白鎏金: 琴键 / 旋钮 / 按钮
-    const cream = genGilded({ seed: 23, size: 384, gold: 0.3 });          // 面板底纹: 金箔少一点
-    const plate = genGilded({ seed: 29, size: 320, gold: 0 });            // 沙盘石板: 无金箔的白玉
-    const black = genGilded({ seed: 31, size: 384, gold: 1, dark: true }); // 黑鎏金: 黑键 / 毒液旋钮
-    const obsidian = genMarble({ seed: 41, size: 256, base: [15, 14, 21], vein: [44, 52, 46], metal: [120, 220, 80], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.16 });
-    const carbon = genForgedCarbon(192, 77);
+    const white = genGilded({ seed: 19, size: 384, gold: gs });            // 白鎏金: 琴键 / 旋钮 / 按钮
+    const cream = genGilded({ seed: 23, size: 384, gold: 0.3 * gs });      // 面板底纹: 金箔少一点
+    const plate = (S.marble && S.marble.plate) || genGilded({ seed: 29, size: 320, gold: 0 }); // 沙盘石板: 无金箔的白玉
+    const black = genGilded({ seed: 31, size: 384, gold: 1.25 * gs, dark: true }); // 黑鎏金: 黑键 / 毒液旋钮
+    const obsidian = (S.marble && S.marble.obsidian) || genMarble({ seed: 41, size: 256, base: [15, 14, 21], vein: [44, 52, 46], metal: [120, 220, 80], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.16 });
+    const carbon = (S.marble && S.marble.carbon) || genForgedCarbon(192, 77);
     S.marble = { white, cream, black, obsidian, carbon, plate, ms: Math.round(performance.now() - t0) };
     const st = document.documentElement.style;
     st.setProperty('--marble-white-img', 'url("' + white + '")'); st.setProperty('--marble-cream-img', 'url("' + cream + '")');
@@ -129,9 +132,11 @@
     st.setProperty('--carbon-img', 'url("' + carbon + '")');
     const set = (id, url) => { const im = document.querySelector('#' + id + ' image'); if (im) { im.setAttribute('href', url); im.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url); } };
     set('marbleKnob', white); set('marbleKnobDark', black); set('marblePlate', cream); set('marblePlateDark', obsidian);
+    for (const { img, kind } of S.marbleImages) if (S.marble[kind]) { img.setAttribute('href', S.marble[kind]); img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', S.marble[kind]); }
     document.body.classList.add('marble-ready');
     return S.marble;
   }
+  S.rebuildMarble = (gold) => build(gold);
   S.buildMarble = build;
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => build()); else build();
 })(window);
