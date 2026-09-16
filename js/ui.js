@@ -187,7 +187,7 @@
       for (let i = 0; i < this.N; i++) { this.px[i] = Math.random(); this.py[i] = Math.random(); }
       this.m = 2; this.n = 3; this.tm = 2; this.tn = 3; this.amp = 0; this.frame = 0; this.f1 = 0; this.harm = new Float32Array(12);
       this.relief = null; this.reliefKey = ''; this.tile = null;
-      if (S.marble) { this.tileLight = new Image(); this.tileLight.src = S.marble.cream; this.tileDark = new Image(); this.tileDark.src = S.marble.obsidian; }
+      if (S.marble) { this.tileLight = new Image(); this.tileLight.src = S.marble.plate || S.marble.cream; this.tileDark = new Image(); this.tileDark.src = S.marble.obsidian; }
     }
     analyse() {
       this.an.getByteFrequencyData(this.fd); this.an.getByteTimeDomainData(this.td);
