@@ -67,7 +67,7 @@
   }
   /* 鎏金大理石: 白/炭黑底 + 云纹 + 灰脉与细裂纹 + 沿脉堆积的金箔簇 + 金粉闪点 */
   function genGilded(o) {
-    const size = o.size || 384; const cv = document.createElement('canvas'); cv.width = cv.height = size; const ctx = cv.getContext('2d');
+    const size = o.size || 384; const cv = document.createElement('canvas'); cv.width = cv.height = size; const ctx = cv.getContext('2d'); let goldPx = 0;
     const img = ctx.createImageData(size, size); const d = img.data; const dark = !!o.dark;
     const fCloud = makeNoise(o.seed), fVein = makeNoise(o.seed * 3 + 1), fCrack = makeNoise(o.seed * 5 + 2), fDet = makeNoise(o.seed * 7 + 3), fMask = makeNoise(o.seed * 11 + 4);
     let rs = (o.seed * 2654435761) >>> 0; const rnd = () => { rs = (rs * 1664525 + 1013904223) >>> 0; return rs / 4294967296; };
@@ -96,6 +96,7 @@
       const cluster = Math.exp(-Math.pow((vn - 0.5) / 0.09, 2)) * sm(0.56, 0.62, mask * 0.8 + det * 0.2 + crin * 0.08);
       let leaf = Math.min(1, (ribbon + cluster) * goldAmt);
       leaf = sm(0.18, 0.5, leaf); // 边缘更硬, 像真金箔的碎边
+      if (leaf > 0.5) goldPx++;
       if (leaf > 0.01) {
         // 金箔褶皱: 高频 crin 决定明暗, 加上斜向高光条纹 → 金属感
         const fold = crin * 0.6 + det * 0.4; const streak = 0.5 + 0.5 * Math.sin((u + v) * 140 + fold * 9); const grain = rnd();
@@ -111,7 +112,14 @@
     ctx.putImageData(img, 0, 0);
     // 金箔整体轻微高光 (斜向)
     const sheen = ctx.createLinearGradient(0, 0, size, size); sheen.addColorStop(0, 'rgba(255,255,255,0.06)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(255,255,255,0.05)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, size, size);
+    genGilded.lastCoverage = goldPx / (size * size);
     return cv.toDataURL('image/png');
+  }
+  /* 生成并校准: 金箔覆盖面积不超过 maxCover (默认 6%) */
+  function genGildedCapped(o, maxCover) {
+    maxCover = maxCover || 0.06; let url = genGilded(o); let cov = genGilded.lastCoverage;
+    for (let i = 0; i < 2 && cov > maxCover; i++) { o = Object.assign({}, o, { gold: (o.gold == null ? 1 : o.gold) * Math.max(0.3, (maxCover / cov) * 0.92) }); url = genGilded(o); cov = genGilded.lastCoverage; }
+    genGildedCapped.lastCoverage = cov; return url;
   }
   S.marbleImages = []; // 需要随纹理重生成而更新的 <image> (每个旋钮各自的图案)
   S.registerMarbleImage = (img, kind) => { S.marbleImages.push({ img, kind }); if (S.marble && S.marble[kind]) { img.setAttribute('href', S.marble[kind]); img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', S.marble[kind]); } };
@@ -119,13 +127,13 @@
     if (S.marble && goldScale == null) return S.marble;
     const gs = goldScale == null ? (S.marbleGold == null ? 1 : S.marbleGold) : goldScale; S.marbleGold = gs;
     const t0 = performance.now();
-    const white = genGilded({ seed: 19, size: 384, gold: gs });            // 白鎏金: 琴键 / 旋钮 / 按钮
-    const cream = genGilded({ seed: 23, size: 384, gold: 0.3 * gs });      // 面板底纹: 金箔少一点
+    const white = genGildedCapped({ seed: 19, size: 384, gold: 0.62 * gs }, 0.06); const covW = genGildedCapped.lastCoverage;   // 白鎏金: 琴键 / 旋钮 / 按钮 (≤ 6%)
+    const cream = genGildedCapped({ seed: 23, size: 384, gold: 0.2 * gs }, 0.025);                                          // 面板底纹: 更少
     const plate = (S.marble && S.marble.plate) || genGilded({ seed: 29, size: 320, gold: 0 }); // 沙盘石板: 无金箔的白玉
-    const black = genGilded({ seed: 31, size: 384, gold: 1.25 * gs, dark: true }); // 黑鎏金: 黑键 / 毒液旋钮
+    const black = genGildedCapped({ seed: 31, size: 384, gold: 0.95 * gs, dark: true }, 0.06); const covB = genGildedCapped.lastCoverage; // 黑鎏金: 黑键 / 毒液旋钮 (≤ 6%)
     const obsidian = (S.marble && S.marble.obsidian) || genMarble({ seed: 41, size: 256, base: [15, 14, 21], vein: [44, 52, 46], metal: [120, 220, 80], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.16 });
     const carbon = (S.marble && S.marble.carbon) || genForgedCarbon(192, 77);
-    S.marble = { white, cream, black, obsidian, carbon, plate, ms: Math.round(performance.now() - t0) };
+    S.marble = { white, cream, black, obsidian, carbon, plate, coverWhite: covW, coverBlack: covB, ms: Math.round(performance.now() - t0) };
     const st = document.documentElement.style;
     st.setProperty('--marble-white-img', 'url("' + white + '")'); st.setProperty('--marble-cream-img', 'url("' + cream + '")');
     st.setProperty('--marble-black-img', 'url("' + black + '")'); st.setProperty('--marble-obsidian-img', 'url("' + obsidian + '")');

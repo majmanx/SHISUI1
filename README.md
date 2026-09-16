@@ -1,5 +1,11 @@
 # 石髓 SHISUI · Marble × Venom 弦管合成器
 
+> **Live demo:** <https://majmanx.github.io/SHISUI1/> · License: MIT · Status: public beta
+
+**English:** SHISUI is a browser synthesizer (Web Audio + AudioWorklet, no build step, no install) built around physically modelled Chinese instruments — guzheng, erhu, dizi, guan/suona and a string ensemble — with an "electrified" signal chain (pickup → diode → tube → cabinet), a Venom mode, and random ports driven by true randomness, the digits of π and a simulated carbon‑14 decay. Marble and gilded-marble UI, Chladni sand visualizer, recording to WAV, eight persistent sound slots, MIDI, bilingual labels. Open the live demo, click **AWAKEN**, play with **Z X C V** or **Q W E R**. Found a bug? Use the **Report** button in the top bar — it prefills a GitHub Issue with logs.
+
+
+
 古筝 · 二胡 · 竹笛 · 管子/唢呐 · 弦乐群 的物理建模内核，插电拾音、二极管与电子管放大链，
 以及由 **真随机 / 圆周率 / 碳-14 衰变** 驱动的随机接口。大理石里流淌的液态金属，光从金脉中迸出。
 
