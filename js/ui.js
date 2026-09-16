@@ -192,7 +192,7 @@
       this.mode = 'sand'; this.N = 1600; this.px = new Float32Array(this.N); this.py = new Float32Array(this.N); this.pv = new Float32Array(this.N);
       for (let i = 0; i < this.N; i++) { this.px[i] = Math.random(); this.py[i] = Math.random(); }
       this.m = 2; this.n = 3; this.tm = 2; this.tn = 3; this.amp = 0; this.frame = 0; this.f1 = 0; this.harm = new Float32Array(12);
-      this.relief = null; this.reliefKey = ''; this.tile = null;
+      this.relief = null; this.reliefKey = ''; this.tile = null; this.reliefPrev = null; this.reliefFade = 1; this.stable = 0;
       if (S.marble) { this.tileLight = new Image(); this.tileLight.src = S.marble.plate || S.marble.cream; this.tileDark = new Image(); this.tileDark.src = S.marble.obsidian; }
     }
     analyse() {
@@ -215,7 +215,8 @@
         // 谐波: 基频整数倍附近的能量
         for (let k = 1; k <= 12; k++) { const bk = Math.round((f1 * k) / (sr / 2 / bins)); let mx = 0; for (let d = -2; d <= 2; d++) { const v = this.fd[bk + d] || 0; if (v > mx) mx = v; } this.harm[k - 1] += (mx / 255 - this.harm[k - 1]) * 0.3; }
       }
-      if (this.frame % 30 === 0) { this.m = this.tm; this.n = this.tn; }
+      // 振型切换带滞回: 目标连续稳定 24 帧才切, 切换时浮雕交叉淡入 (Issue #10)
+      if (this.tm === this.m && this.tn === this.n) this.stable = 0; else if (++this.stable >= 24) { this.reliefPrev = this.relief; this.reliefFade = 0; this.m = this.tm; this.n = this.tn; this.stable = 0; }
     }
     /* 振型浮雕: 峰亮谷暗 + 斜向光照, 低分辨率渲染后放大, 只在 (m,n,主题,尺寸) 变化时重算 */
     buildRelief(W, H, venom) {
@@ -233,14 +234,17 @@
         for (let k = 0; k < 3; k++) { let col = base[k] + (peak[k] - base[k]) * t + (valley[k] - base[k]) * (1 - t) * 0.55; col += light * 14; d[i + k] = col < 0 ? 0 : col > 255 ? 255 : col; }
         d[i + 3] = 255;
       }
-      c.putImageData(img, 0, 0); this.relief = off; this.reliefKey = key; return off;
+      c.putImageData(img, 0, 0); if (this.relief && this.reliefFade >= 1) this.reliefPrev = this.relief; this.relief = off; this.reliefKey = key; return off;
     }
     drawSand(ctx, W, H, venom) {
       const a = this.amp; const m = this.m, n = this.n; const PI = Math.PI;
       // 石板: 大理石贴图 × 振型浮雕
       const tile = venom ? this.tileDark : this.tileLight;
       if (tile && tile.complete && tile.naturalWidth) { const pat = ctx.createPattern(tile, 'repeat'); ctx.fillStyle = pat; ctx.fillRect(0, 0, W, H); } else { ctx.fillStyle = venom ? '#14121b' : '#ece7db'; ctx.fillRect(0, 0, W, H); }
-      ctx.save(); ctx.globalAlpha = venom ? 0.82 : 0.78; ctx.imageSmoothingEnabled = true; ctx.drawImage(this.buildRelief(W, H, venom), 0, 0, W, H); ctx.restore();
+      const cur = this.buildRelief(W, H, venom); const base = venom ? 0.82 : 0.78; ctx.imageSmoothingEnabled = true;
+      if (this.reliefFade < 1 && this.reliefPrev && this.reliefPrev !== cur) { this.reliefFade = Math.min(1, this.reliefFade + 1 / 50); const f = this.reliefFade; const e = f * f * (3 - 2 * f);
+        ctx.save(); ctx.globalAlpha = base * (1 - e); ctx.drawImage(this.reliefPrev, 0, 0, W, H); ctx.globalAlpha = base * e; ctx.drawImage(cur, 0, 0, W, H); ctx.restore(); }
+      else { ctx.save(); ctx.globalAlpha = base; ctx.drawImage(cur, 0, 0, W, H); ctx.restore(); }
       // 粒子
       const k = 0.0016 * (0.6 + a * 2.5), jit = 0.00035 + a * 0.003; const px = this.px, py = this.py, pv = this.pv;
       for (let i = 0; i < this.N; i++) {

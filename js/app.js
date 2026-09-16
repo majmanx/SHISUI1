@@ -583,9 +583,7 @@
     $('#venom-preset-bass').addEventListener('click', () => { $('#venom-intro').classList.remove('open'); const i = allPresets().findIndex((p) => p.name.startsWith('毒液低音')); if (i >= 0) loadPreset(i); setMode('shape'); });
     document.querySelectorAll('#lang-toggle button').forEach((b) => b.addEventListener('click', () => setLang(b.dataset.lang)));
     $('#btn-plain').addEventListener('click', () => setPlain(!document.body.classList.contains('plain'))); setPlain(!!store.get('shisui.plain', false));
-    { const g = $('#gold-amount'); const saved = store.get('shisui.gold', 1); g.value = saved; if (Math.abs(saved - (S.marbleGold == null ? 1 : S.marbleGold)) > 0.01) S.rebuildMarble(saved);
-      let gt; g.addEventListener('input', () => { clearTimeout(gt); gt = setTimeout(() => { const v = +g.value; store.set('shisui.gold', v); const t0 = performance.now(); S.rebuildMarble(v); logAction('gold ' + v); toast('金量 ' + Math.round(v * 100) + '% · 纹理已重生成 ' + Math.round(performance.now() - t0) + ' ms'); }, 350); });
-      g.addEventListener('keydown', (e) => e.stopPropagation()); }
+
     $('#btn-report').addEventListener('click', openReport); $('#report-close').addEventListener('click', () => $('#report').classList.remove('open'));
     $('#report').addEventListener('click', (e) => { if (e.target.id === 'report') $('#report').classList.remove('open'); });
     $('#rep-submit').addEventListener('click', submitReport); $('#rep-copy').addEventListener('click', copyReport); $('#rep-download').addEventListener('click', downloadReport);
