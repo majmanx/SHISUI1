@@ -65,23 +65,68 @@
     const sheen = ctx.createLinearGradient(0, 0, size, size); sheen.addColorStop(0, 'rgba(255,255,255,0.07)'); sheen.addColorStop(0.35, 'rgba(255,255,255,0)'); sheen.addColorStop(0.65, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(255,255,255,0.06)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, size, size);
     return cv.toDataURL('image/png');
   }
+  /* 鎏金大理石: 白/炭黑底 + 云纹 + 灰脉与细裂纹 + 沿脉堆积的金箔簇 + 金粉闪点 */
+  function genGilded(o) {
+    const size = o.size || 384; const cv = document.createElement('canvas'); cv.width = cv.height = size; const ctx = cv.getContext('2d');
+    const img = ctx.createImageData(size, size); const d = img.data; const dark = !!o.dark;
+    const fCloud = makeNoise(o.seed), fVein = makeNoise(o.seed * 3 + 1), fCrack = makeNoise(o.seed * 5 + 2), fDet = makeNoise(o.seed * 7 + 3), fMask = makeNoise(o.seed * 11 + 4);
+    let rs = (o.seed * 2654435761) >>> 0; const rnd = () => { rs = (rs * 1664525 + 1013904223) >>> 0; return rs / 4294967296; };
+    const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    const goldAmt = o.gold == null ? 1 : o.gold;
+    const fCrin = makeNoise(o.seed * 13 + 6), fWidth = makeNoise(o.seed * 17 + 8);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const u = x / size, v = y / size;
+      const cloud = fCloud(u * 2.0, v * 2.0, 3);
+      const vn = fVein(u * 3.0 + 7, v * 3.0 + 2, 4);
+      const cr = fCrack(u * 5.5 + 3, v * 5.5 + 9, 4);
+      const det = fDet(u * 30, v * 30, 2);
+      const crin = fCrin(u * 60, v * 60, 2);
+      const mask = fMask(u * 3.6 + 11, v * 3.6 + 5, 3);
+      const wv = fWidth(u * 2.5 + 4, v * 2.5 + 6, 2); // 脉络宽窄变化
+      // 底色: 云纹 (柔和灰白)
+      let g = dark ? 26 + (cloud - 0.5) * 36 : 247 - (cloud - 0.5) * 64;
+      // 灰脉: 宽而柔的晕 + 断续的深色芯
+      const soft = Math.exp(-Math.pow((vn - 0.5) / (0.05 + 0.07 * wv), 2)) * (0.25 + 0.5 * wv);
+      const core = Math.exp(-Math.pow((vn - 0.5) / 0.011, 2)) * sm(0.42, 0.55, mask + (det - 0.5) * 0.2);
+      const crack = Math.exp(-Math.pow((cr - 0.5) / 0.006, 2)) * sm(0.45, 0.6, wv);
+      g += dark ? soft * 48 + core * 70 + crack * 60 : -soft * 58 - core * 95 - crack * 80;
+      let r = g, gg = g, bb = g + (dark ? 7 : 5);
+      // 金箔: (1) 沿脉络的金丝带 (2) 团簇金箔; 边缘由高频噪声撕碎
+      const ribbon = Math.exp(-Math.pow((cr - 0.5) / 0.03, 2)) * sm(0.5, 0.58, mask + (det - 0.5) * 0.3);
+      const cluster = Math.exp(-Math.pow((vn - 0.5) / 0.09, 2)) * sm(0.56, 0.62, mask * 0.8 + det * 0.2 + crin * 0.08);
+      let leaf = Math.min(1, (ribbon + cluster) * goldAmt);
+      leaf = sm(0.18, 0.5, leaf); // 边缘更硬, 像真金箔的碎边
+      if (leaf > 0.01) {
+        // 金箔褶皱: 高频 crin 决定明暗, 加上斜向高光条纹 → 金属感
+        const fold = crin * 0.6 + det * 0.4; const streak = 0.5 + 0.5 * Math.sin((u + v) * 140 + fold * 9); const grain = rnd();
+        const l = Math.pow(fold, 1.2) * 0.75 + streak * 0.12 + grain * 0.22;
+        const gr = 120 + 135 * l, gG = 78 + 150 * l, gB = 18 + 110 * l * l;
+        r += (gr - r) * leaf; gg += (gG - gg) * leaf; bb += (gB - bb) * leaf;
+        if (rnd() < 0.03 * leaf) { r = 255; gg = 240; bb = 170; } // 金箔上的闪点
+      }
+      // 金粉: 零散闪点
+      if (rnd() < 0.002 * goldAmt * (0.3 + mask)) { r = 250; gg = 214; bb = 110; }
+      const i = (y * size + x) * 4; d[i] = r < 0 ? 0 : r > 255 ? 255 : r; d[i + 1] = gg < 0 ? 0 : gg > 255 ? 255 : gg; d[i + 2] = bb < 0 ? 0 : bb > 255 ? 255 : bb; d[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    // 金箔整体轻微高光 (斜向)
+    const sheen = ctx.createLinearGradient(0, 0, size, size); sheen.addColorStop(0, 'rgba(255,255,255,0.06)'); sheen.addColorStop(0.5, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(255,255,255,0.05)'); ctx.fillStyle = sheen; ctx.fillRect(0, 0, size, size);
+    return cv.toDataURL('image/png');
+  }
   function build() {
     if (S.marble) return S.marble;
     const t0 = performance.now();
-    // 白玉: 极淡灰脉 + 细金痕 (旋钮 / 琴键 / 按钮)
-    const white = genMarble({ seed: 11, size: 256, base: [248, 246, 240], vein: [205, 198, 186], metal: [222, 186, 96], freq: 5.5, veinW: 0.016, metalW: 0.0045, shade: 0.05 });
-    // 奶白: 面板底纹, 脉络稍明显但仍柔和
-    const cream = genMarble({ seed: 23, size: 256, base: [245, 241, 231], vein: [200, 190, 172], metal: [214, 178, 92], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.06 });
-    // 黑玉: 黑键 / 毒液旋钮, 银灰细脉 + 银痕
-    const black = genMarble({ seed: 37, size: 256, base: [26, 24, 32], vein: [66, 62, 78], metal: [196, 196, 206], freq: 5.5, veinW: 0.016, metalW: 0.0045, shade: 0.12 });
-    // 黑曜石: 毒液面板底纹, 暗绿脉 + 酸绿痕
+    const white = genGilded({ seed: 19, size: 384, gold: 1 });            // 白鎏金: 琴键 / 旋钮 / 按钮
+    const cream = genGilded({ seed: 23, size: 384, gold: 0.3 });          // 面板底纹: 金箔少一点
+    const plate = genGilded({ seed: 29, size: 320, gold: 0 });            // 沙盘石板: 无金箔的白玉
+    const black = genGilded({ seed: 31, size: 384, gold: 1, dark: true }); // 黑鎏金: 黑键 / 毒液旋钮
     const obsidian = genMarble({ seed: 41, size: 256, base: [15, 14, 21], vein: [44, 52, 46], metal: [120, 220, 80], freq: 4.2, veinW: 0.02, metalW: 0.005, shade: 0.16 });
     const carbon = genForgedCarbon(192, 77);
-    S.marble = { white, cream, black, obsidian, carbon, ms: Math.round(performance.now() - t0) };
-    document.documentElement.style.setProperty('--carbon-img', 'url("' + carbon + '")');
+    S.marble = { white, cream, black, obsidian, carbon, plate, ms: Math.round(performance.now() - t0) };
     const st = document.documentElement.style;
     st.setProperty('--marble-white-img', 'url("' + white + '")'); st.setProperty('--marble-cream-img', 'url("' + cream + '")');
     st.setProperty('--marble-black-img', 'url("' + black + '")'); st.setProperty('--marble-obsidian-img', 'url("' + obsidian + '")');
+    st.setProperty('--carbon-img', 'url("' + carbon + '")');
     const set = (id, url) => { const im = document.querySelector('#' + id + ' image'); if (im) { im.setAttribute('href', url); im.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url); } };
     set('marbleKnob', white); set('marbleKnobDark', black); set('marblePlate', cream); set('marblePlateDark', obsidian);
     document.body.classList.add('marble-ready');

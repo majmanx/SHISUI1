@@ -371,7 +371,7 @@ body.venom .btn.gold .en, body.venom .mode-tab.on .en { color: #1f4d16; }
    ============================================================ */
 :root { --marble-surface: var(--marble-white-img, none); --marble-panel: var(--marble-cream-img, none); --marble-key-w: var(--marble-white-img, none); --marble-key-b: var(--marble-black-img, none); }
 body.venom { --marble-surface: var(--marble-black-img, none); --marble-panel: var(--marble-obsidian-img, none); --marble-key-w: var(--marble-black-img, none); --marble-key-b: var(--marble-obsidian-img, none); }
-body.marble-ready .panel { background-image: linear-gradient(160deg, rgba(255, 253, 247, 0.86), rgba(246, 241, 230, 0.8)), var(--marble-panel); background-size: auto, 256px; background-blend-mode: normal; }
+body.marble-ready .panel { background-image: linear-gradient(160deg, rgba(255, 253, 247, 0.8), rgba(246, 241, 230, 0.74)), var(--marble-panel); background-size: auto, 384px; background-blend-mode: normal; }
 body.marble-ready.venom .panel { background-image: linear-gradient(160deg, rgba(18, 16, 26, 0.84), rgba(10, 9, 14, 0.82)), var(--marble-panel); }
 body.marble-ready .grp { background-image: none; background-color: rgba(255, 255, 255, 0.5); }
 body.marble-ready.venom .grp { background-image: none; background-color: rgba(255, 255, 255, 0.045); }
@@ -383,7 +383,7 @@ body.marble-ready .tile.on { background-image: linear-gradient(160deg, rgba(255,
 body.marble-ready.venom .tile.on { background-image: linear-gradient(160deg, rgba(223, 255, 200, 0.9), rgba(140, 255, 90, 0.85) 70%, rgba(63, 189, 43, 0.9)), var(--marble-surface); }
 body.marble-ready .toggle.on { background-image: linear-gradient(180deg, rgba(255, 249, 223, 0.85), rgba(240, 222, 160, 0.8)), var(--marble-surface); }
 body.marble-ready .chip.on { background-image: linear-gradient(180deg, rgba(255, 246, 200, 0.9), rgba(232, 193, 90, 0.85)), var(--marble-surface); }
-body.marble-ready .topbar, body.marble-ready .keys-wrap { background-image: linear-gradient(180deg, rgba(255, 252, 244, 0.8), rgba(240, 234, 220, 0.76)), var(--marble-panel); background-size: auto, 256px; }
+body.marble-ready .topbar, body.marble-ready .keys-wrap { background-image: linear-gradient(180deg, rgba(255, 252, 244, 0.78), rgba(240, 234, 220, 0.74)), var(--marble-panel); background-size: auto, 384px; }
 body.marble-ready.venom .topbar, body.marble-ready.venom .keys-wrap { background-image: linear-gradient(180deg, rgba(22, 20, 30, 0.9), rgba(12, 11, 16, 0.88)), var(--marble-panel); }
 /* 旋钮: 大理石体 + 金环 + 雾面 */
 body.marble-ready .k-body { fill: url(#marbleKnob); }
@@ -396,8 +396,8 @@ body.marble-ready.venom .knob.active .k-body, body.marble-ready.venom .knob:hove
 .k-ptr { stroke: #7a5a08; }
 body.venom .k-ptr { stroke: #dfffc8; }
 /* 琴键: 黑白大理石 + 液态金属痕 */
-body.marble-ready .key.white { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 40%, rgba(60, 40, 10, 0.16)), var(--marble-key-w); background-size: auto, 128px; border-color: rgba(90, 80, 60, 0.45); box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.6); }
-body.marble-ready .key.black { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.35)), var(--marble-key-b); background-size: auto, 96px; border-color: #1a1814; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.45), inset 0 -3px 0 rgba(232, 193, 90, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18); }
+body.marble-ready .key.white { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%, rgba(60, 40, 10, 0.14)), var(--marble-key-w); background-size: auto, 140px; border-color: rgba(90, 80, 60, 0.45); box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.6); }
+body.marble-ready .key.black { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.3)), var(--marble-key-b); background-size: auto, 110px; border-color: #1a1814; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.45), inset 0 -3px 0 rgba(232, 193, 90, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18); }
 body.marble-ready .key.white.down, body.marble-ready .key.white.lit { background-image: linear-gradient(180deg, rgba(255, 246, 200, 0.75), rgba(232, 193, 90, 0.7)), var(--marble-key-w); }
 body.marble-ready .key.black.down, body.marble-ready .key.black.lit { background-image: linear-gradient(180deg, rgba(184, 134, 11, 0.85), rgba(107, 76, 6, 0.85)), var(--marble-key-b); }
 body.marble-ready.venom .key.white.down, body.marble-ready.venom .key.white.lit { background-image: linear-gradient(180deg, rgba(223, 255, 200, 0.8), rgba(140, 255, 90, 0.75)), var(--marble-key-w); }
@@ -551,3 +551,11 @@ body.venom .knob-label, body.venom .knob-en, body.venom .knob-val, body.venom .g
 .knob-en { white-space: normal; max-width: 92px; text-align: center; line-height: 1.15; }
 .knob-label { white-space: normal; max-width: 92px; text-align: center; line-height: 1.15; }
 body.lang-en .knob-en { max-width: 96px; }
+
+/* ---------- 鎏金细节: 面板内金线框 ---------- */
+body.marble-ready .panel-body { position: relative; }
+body.marble-ready .panel::after { background: radial-gradient(ellipse at 15% 0%, rgba(255, 255, 255, 0.35), transparent 50%); box-shadow: inset 0 0 0 1px rgba(201, 160, 54, 0.32); border-radius: 16px; }
+body.marble-ready .panel { box-shadow: 0 14px 40px rgba(70, 55, 20, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 5px rgba(255, 255, 255, 0.35), inset 0 0 0 6px rgba(201, 160, 54, 0.35); }
+body.marble-ready.venom .panel { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 5px rgba(0, 0, 0, 0.25), inset 0 0 0 6px rgba(140, 255, 90, 0.25); }
+.btn.gold { background: linear-gradient(180deg, #fff3c4 0%, #f0cf6a 40%, #c9a236 55%, #e9c860 100%); }
+body.marble-ready .key.white { border-color: rgba(120, 100, 60, 0.45); }
