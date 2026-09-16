@@ -19,6 +19,8 @@
   root.addEventListener('error', (e) => logError('error', e.message, e.filename + ':' + e.lineno + ' ' + (e.error && e.error.stack ? e.error.stack.split('\n').slice(0, 4).join(' | ') : '')));
   root.addEventListener('unhandledrejection', (e) => logError('promise', e.reason && e.reason.message ? e.reason.message : e.reason, e.reason && e.reason.stack ? e.reason.stack.split('\n').slice(0, 4).join(' | ') : ''));
   { const ce = console.error.bind(console); console.error = (...a) => { logError('console', a.map((x) => (x && x.message) || String(x)).join(' ')); ce(...a); }; const cw = console.warn.bind(console); console.warn = (...a) => { logError('warn', a.map((x) => (x && x.message) || String(x)).join(' ')); cw(...a); }; }
+  /* 仓库地址：在 github.io 上运行时从网址推断 (改用户名后自动跟随)，否则用默认值 */
+  S.REPO = (() => { const m = /^([^.]+)\.github\.io$/.exec(location.hostname); if (m) { const seg = location.pathname.split('/').filter(Boolean)[0]; if (seg) return m[1] + '/' + seg; } return 'majmanx/SHISUI1'; })();
   const engine = new S.Engine(); const bus = new S.RandomBus();
   let sched = null, controls = {}, modIndex = {}, keyboard, xyPad, scope, palette, codeConsole;
   let instBody, modListEl, orbEls = [], rndViewEl, geigerLed, geigerCv, c14StatsEl, srcChipEls = {}, patchTA, arpChip;
@@ -549,7 +551,7 @@
     const r = buildReport(); const md = reportMarkdown(r);
     const title = (r.description ? r.description.split('\n')[0].slice(0, 70) : '[自动 · 待 AI 分析] ' + (r.errors.length ? r.errors[r.errors.length - 1].msg.slice(0, 60) : '用户反馈 ' + new Date().toLocaleString()));
     let body = md; const max = 6500; if (body.length > max) body = body.slice(0, max) + '\n\n_（报告已截断，完整 JSON 请用"下载 JSON"附上）_';
-    const url = 'https://github.com/majmanx/SHISUI1/issues/new?labels=bug-report&title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
+    const url = 'https://github.com/' + S.REPO + '/issues/new?labels=bug-report&title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
     try { if (navigator.clipboard) navigator.clipboard.writeText(md).catch(() => {}); } catch (e) { /* 忽略 */ }
     logAction('report submitted'); const w = root.open(url, '_blank'); if (!w) toast('浏览器拦截了新窗口，报告已复制到剪贴板 · Popup blocked; report copied');
   }
