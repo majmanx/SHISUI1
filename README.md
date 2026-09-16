@@ -42,6 +42,14 @@ node --check js/*.js
 node test/dsp-smoke.js    # DSP 数值冒烟测试（每种乐器出声、不发散、性能）
 ```
 
+## 隐私与兼容性提醒 · Notes before you play
+
+- **报错按钮会公开什么**：点「报错 Report」生成的 GitHub Issue 里包含你的浏览器版本（User-Agent）、屏幕尺寸、采样率、当时的音色参数、最近的操作记录与错误日志。**不包含**账号、姓名、录音音频或声音槽内容。提交前可以在 GitHub 页面上删掉任何一段。
+  *The Report button prefills a public GitHub Issue with your browser User-Agent, screen size, sample rate, current patch, recent actions and error log. It never includes your account, name, recorded audio or slot contents. You can delete any section before submitting.*
+- **手机与 Safari**：本项目在桌面 Chrome / Edge 上开发和测试；手机 Safari、手机 Chrome 只做过基本适配，没有系统性真机测试。公测阶段特别欢迎手机端反馈（触控、延迟、发不出声、布局）。
+  *Developed and tested on desktop Chrome / Edge. Mobile Safari and mobile Chrome have only basic adaptation and no systematic device testing yet. Mobile feedback is especially welcome during the beta.*
+- **声音槽与预设存在你自己的浏览器里**（IndexedDB / localStorage），换浏览器或清理站点数据会丢，想保留请导出 WAV / JSON。
+
 ## 报错与自动修复
 
 页面顶栏「报错 Report」会收集最近的错误、操作记录、状态与环境，加上你的描述，生成预填好的 GitHub Issue（label `bug-report`）。
